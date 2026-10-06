@@ -12,5 +12,33 @@
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "shared_file",
+          "accept": [
+            ".docx",
+            ".xlsx",
+            ".xls",
+            ".pptx",
+            ".ppt",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "application/vnd.ms-powerpoint",
+            "application/msword",
+            "application/vnd.ms-excel",
+            "application/octet-stream"
+          ]
+        }
+      ]
+    }
+  }
 }
