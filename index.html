@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Doc Viewer</title>
+  <title>Personal Document Reader</title>
   
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
@@ -32,22 +32,30 @@
       overflow: hidden;
     }
 
-    /* HEADER */
+    /* HEADER WITH DYNAMIC FILE NAME */
     header { 
-      padding: 10px 15px; 
+      padding: 10px 14px; 
       background: #1a1c29; 
       display: flex;
       align-items: center;
-      justify-content: center;
       gap: 10px;
       border-bottom: 1px solid #2d3142; 
       flex-shrink: 0;
     }
     header img {
-      width: 24px;
-      height: 24px;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
     }
-    h1 { font-size: 1rem; font-weight: 600; color: #82aaff; }
+    #doc-title { 
+      font-size: 0.95rem; 
+      font-weight: 600; 
+      color: #82aaff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 82vw;
+    }
 
     /* UPLOAD BAR */
     .upload-bar { 
@@ -55,6 +63,7 @@
       text-align: center; 
       background: #12141f;
       flex-shrink: 0;
+      border-bottom: 1px solid #1e2130;
     }
     input[type="file"] { display: none; }
     .btn { 
@@ -68,7 +77,7 @@
       font-weight: 500;
     }
 
-    /* SCROLL CONTAINER */
+    /* ZERO-VOID SCROLL CONTAINER */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -77,43 +86,51 @@
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
       background: #0f111a;
-      padding: 10px;
+      padding: 12px 12px 20px 12px; /* Tight padding, stops blank bottom void */
       touch-action: pan-x pan-y;
     }
 
-    /* ZOOM CANVAS */
+    /* ZOOM WRAPPER LOCKED TO TOP-LEFT */
     #zoom-wrapper {
-      display: inline-block;
+      display: block;
       transform-origin: 0 0;
+      width: max-content;
       min-width: 100%;
     }
 
     #viewer { 
-      background: #ffffff; 
+      background: transparent; 
       color: #000; 
-      border-radius: 6px; 
-      padding: 15px;
-      min-height: 80vh;
-      min-width: 100%;
-      display: inline-block;
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      min-height: auto; /* Kills bottom dead space */
+      display: block;
     }
 
-    /* WORD DOCUMENT STYLING */
+    /* WORD DOCUMENT (NO LEFT-VOID / ZERO MARGIN CUTOFF) */
     .docx-wrapper { 
       background: transparent !important; 
       padding: 0 !important; 
+      margin: 0 !important;
+      display: block !important;
     }
     .docx-wrapper > section.docx { 
-      min-width: 650px !important; 
-      padding: 20px !important; 
-      margin: 0 auto 15px auto !important; 
-      box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+      min-width: 580px !important; 
+      padding: 24px 20px !important; 
+      margin: 0 0 16px 0 !important; /* Starts at left:0, no phantom gap */
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+      background: #ffffff !important;
+      border-radius: 6px;
     }
 
-    /* EXCEL TABLE STYLING */
+    /* EXCEL TABLE */
     .table-wrapper {
       width: 100%;
       overflow-x: auto;
+      background: #ffffff;
+      border-radius: 6px;
+      padding: 8px;
     }
     table { 
       border-collapse: collapse; 
@@ -127,62 +144,56 @@
     }
     th { background: #f3f4f6; font-weight: 600; }
 
-    /* POWERPOINT SLIDE CARDS */
-    .ppt-slide {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      margin-bottom: 25px;
-      min-width: 650px;
-      min-height: 380px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    /* POWERPOINT 16:9 PRESENTATION STAGE */
+    .ppt-slide-card {
+      background: #181a24;
+      border-radius: 10px;
+      margin: 0 0 20px 0;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
       overflow: hidden;
-      display: flex;
-      flex-direction: column;
+      width: 100%;
+      min-width: 580px;
+      max-width: 800px;
+      border: 1px solid #282c3f;
     }
     .ppt-slide-header {
-      background: #2d3748;
-      color: #edf2f7;
+      background: #202332;
+      color: #8da2fb;
       padding: 6px 14px;
       font-size: 0.75rem;
-      font-weight: 700;
+      font-weight: 600;
       letter-spacing: 0.5px;
       text-transform: uppercase;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      border-bottom: 1px solid #282c3f;
     }
-    .ppt-slide-body {
-      padding: 24px;
-      flex: 1;
+    .ppt-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    .ppt-shape {
+      position: absolute;
+      box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      gap: 12px;
-      background: #fafafa;
+      justify-content: center;
+      padding: 4px 6px;
+      overflow: hidden;
+      word-break: break-word;
     }
-    .ppt-text {
-      font-size: 1rem;
-      color: #1a202c;
-      line-height: 1.5;
+    .ppt-pic {
+      position: absolute;
+      box-sizing: border-box;
+      object-fit: contain;
     }
-    .ppt-image {
-      max-width: 100%;
-      height: auto;
-      border-radius: 6px;
-      margin: 8px 0;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-    }
-    .ppt-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin: 10px 0;
-      background: white;
-    }
-    .ppt-table td {
-      border: 1px solid #cbd5e0;
-      padding: 8px 10px;
-      font-size: 0.85rem;
-      color: #2d3748;
+    .ppt-table-box {
+      position: absolute;
+      box-sizing: border-box;
+      overflow: auto;
     }
   </style>
 </head>
@@ -190,7 +201,7 @@
 
   <header>
     <img src="icon.svg" alt="App Logo">
-    <h1>Personal Document Reader</h1>
+    <h1 id="doc-title">Personal Document Reader</h1>
   </header>
 
   <div class="upload-bar">
@@ -201,7 +212,7 @@
   <div id="viewer-container">
     <div id="zoom-wrapper">
       <div id="viewer">
-        <p style="color: #6b7280; text-align: center; margin-top: 50px; font-size: 0.9rem;">
+        <p style="color: #6b7280; text-align: center; margin-top: 60px; font-size: 0.9rem;">
           Select a Word, Excel, or PowerPoint document above.
         </p>
       </div>
@@ -213,6 +224,13 @@
     const viewer = document.getElementById('viewer');
     const container = document.getElementById('viewer-container');
     const zoomWrapper = document.getElementById('zoom-wrapper');
+    const docTitle = document.getElementById('doc-title');
+
+    function updateTitle(name) {
+      if (!name) return;
+      docTitle.textContent = name;
+      document.title = name;
+    }
 
     // ---------------------------------------------------------
     // PERSISTENT TOUCH PINCH-TO-ZOOM ENGINE
@@ -255,7 +273,6 @@
       if (e.touches.length < 2) {
         initialDist = 0;
       }
-
       if (isPinching) {
         if (e.touches.length === 0) {
           isPinching = false;
@@ -263,12 +280,10 @@
         }
         return;
       }
-
       if (touchMoved) {
         lastTap = 0;
         return;
       }
-
       if (e.touches.length === 0) {
         const now = Date.now();
         if (now - lastTap < 300) {
@@ -282,20 +297,66 @@
     });
 
     // ---------------------------------------------------------
-    // POWERPOINT (.PPTX) PARSER ENGINE
+    // POWERPOINT (PPTX) 16:9 GEOMETRIC & DIAGRAM ENGINE
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
 
-      // Collect and sort slides numerically (slide1, slide2, ...)
+      // 1. Resolve Slide Size (Width & Height)
+      let sldW = 12192000;
+      let sldH = 6858000;
+      if (zip.file('ppt/presentation.xml')) {
+        const presXml = await zip.file('ppt/presentation.xml').async('text');
+        const presDoc = new DOMParser().parseFromString(presXml, 'application/xml');
+        const sldSz = presDoc.getElementsByTagName('p:sldSz')[0];
+        if (sldSz) {
+          sldW = parseInt(sldSz.getAttribute('cx'), 10) || sldW;
+          sldH = parseInt(sldSz.getAttribute('cy'), 10) || sldH;
+        }
+      }
+
+      // 2. Resolve Theme Colors
+      const themeColors = {
+        'accent1': '#2563eb',
+        'accent2': '#dc2626',
+        'accent3': '#16a34a',
+        'accent4': '#9333ea',
+        'accent5': '#0891b2',
+        'accent6': '#ea580c',
+        'dk1': '#1e293b',
+        'lt1': '#ffffff'
+      };
+
+      if (zip.file('ppt/theme/theme1.xml')) {
+        const themeXml = await zip.file('ppt/theme/theme1.xml').async('text');
+        const themeDoc = new DOMParser().parseFromString(themeXml, 'application/xml');
+        for (const key of Object.keys(themeColors)) {
+          const node = themeDoc.getElementsByTagName('a:' + key)[0];
+          if (node) {
+            const srgb = node.getElementsByTagName('a:srgbClr')[0];
+            if (srgb) themeColors[key] = '#' + srgb.getAttribute('val');
+          }
+        }
+      }
+
+      function resolveColor(elem) {
+        if (!elem) return null;
+        const srgb = elem.getElementsByTagName('a:srgbClr')[0];
+        if (srgb) return '#' + srgb.getAttribute('val');
+        const scheme = elem.getElementsByTagName('a:schemeClr')[0];
+        if (scheme) {
+          const val = scheme.getAttribute('val');
+          return themeColors[val] || null;
+        }
+        return null;
+      }
+
+      // 3. Find and Sort Slide Files
       const slidePaths = [];
       zip.forEach((path) => {
-        if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) {
-          slidePaths.push(path);
-        }
+        if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
       });
-
       slidePaths.sort((a, b) => {
         const nA = parseInt(a.match(/slide(\d+)\.xml/i)[1], 10);
         const nB = parseInt(b.match(/slide(\d+)\.xml/i)[1], 10);
@@ -303,7 +364,7 @@
       });
 
       if (slidePaths.length === 0) {
-        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">No slides found inside this presentation.</p>';
+        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">No slides found.</p>';
         return;
       }
 
@@ -311,23 +372,10 @@
 
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
-        const slideIndex = i + 1;
         const slideXmlStr = await zip.file(path).async('text');
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
-        // Build Slide Card
-        const card = document.createElement('div');
-        card.className = 'ppt-slide';
-
-        const header = document.createElement('div');
-        header.className = 'ppt-slide-header';
-        header.innerHTML = `<span>Slide ${slideIndex}</span><span>${slidePaths.length} Total</span>`;
-        card.appendChild(header);
-
-        const body = document.createElement('div');
-        body.className = 'ppt-slide-body';
-
-        // Load slide images mapping
+        // Extract Images Mapping for this slide
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
         const imgMap = {};
         if (zip.file(relsPath)) {
@@ -347,76 +395,222 @@
           }
         }
 
-        // Extract Text Paragraphs
-        const shapes = xmlDoc.getElementsByTagName('p:sp');
-        for (const sp of shapes) {
-          const txBody = sp.getElementsByTagName('p:txBody')[0];
-          if (txBody) {
-            const paragraphs = txBody.getElementsByTagName('a:p');
-            for (const p of paragraphs) {
-              let textContent = '';
-              const texts = p.getElementsByTagName('a:t');
-              for (const t of texts) {
-                textContent += t.textContent;
+        // Slide Card Container
+        const card = document.createElement('div');
+        card.className = 'ppt-slide-card';
+
+        const header = document.createElement('div');
+        header.className = 'ppt-slide-header';
+        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Slides</span>`;
+        card.appendChild(header);
+
+        const stage = document.createElement('div');
+        stage.className = 'ppt-stage';
+
+        // Check Slide Background Color
+        const bg = xmlDoc.getElementsByTagName('p:bg')[0];
+        if (bg) {
+          const bgColor = resolveColor(bg);
+          if (bgColor) stage.style.backgroundColor = bgColor;
+        }
+
+        // Recursive Shape & Diagram Processor
+        function processElements(parentXml, targetContainer, baseW, baseH) {
+          for (const node of parentXml.children) {
+            const tag = node.tagName;
+
+            // Group Shapes (Diagrams / Flowcharts / SmartArt groups)
+            if (tag === 'p:grpSp') {
+              const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
+              if (grpXfrm) {
+                const off = grpXfrm.getElementsByTagName('a:off')[0];
+                const ext = grpXfrm.getElementsByTagName('a:ext')[0];
+                const chOff = grpXfrm.getElementsByTagName('a:chOff')[0];
+                const chExt = grpXfrm.getElementsByTagName('a:chExt')[0];
+
+                if (off && ext) {
+                  const gx = parseInt(off.getAttribute('x'), 10);
+                  const gy = parseInt(off.getAttribute('y'), 10);
+                  const gcx = parseInt(ext.getAttribute('cx'), 10);
+                  const gcy = parseInt(ext.getAttribute('cy'), 10);
+
+                  const groupDiv = document.createElement('div');
+                  groupDiv.style.position = 'absolute';
+                  groupDiv.style.left = `${(gx / baseW) * 100}%`;
+                  groupDiv.style.top = `${(gy / baseH) * 100}%`;
+                  groupDiv.style.width = `${(gcx / baseW) * 100}%`;
+                  groupDiv.style.height = `${(gcy / baseH) * 100}%`;
+
+                  const subW = chExt ? parseInt(chExt.getAttribute('cx'), 10) : gcx;
+                  const subH = chExt ? parseInt(chExt.getAttribute('cy'), 10) : gcy;
+
+                  processElements(node, groupDiv, subW, subH);
+                  targetContainer.appendChild(groupDiv);
+                }
               }
-              if (textContent.trim()) {
-                const pTag = document.createElement('p');
-                pTag.className = 'ppt-text';
-                pTag.textContent = textContent;
-                body.appendChild(pTag);
+              continue;
+            }
+
+            // Normal Shapes (Text Boxes, Geometric Cards, Rectangles)
+            if (tag === 'p:sp') {
+              const spPr = node.getElementsByTagName('p:spPr')[0];
+              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
+              if (!xfrm) continue;
+
+              const off = xfrm.getElementsByTagName('a:off')[0];
+              const ext = xfrm.getElementsByTagName('a:ext')[0];
+              if (!off || !ext) continue;
+
+              const x = parseInt(off.getAttribute('x'), 10);
+              const y = parseInt(off.getAttribute('y'), 10);
+              const cx = parseInt(ext.getAttribute('cx'), 10);
+              const cy = parseInt(ext.getAttribute('cy'), 10);
+
+              const shapeDiv = document.createElement('div');
+              shapeDiv.className = 'ppt-shape';
+              shapeDiv.style.left = `${(x / baseW) * 100}%`;
+              shapeDiv.style.top = `${(y / baseH) * 100}%`;
+              shapeDiv.style.width = `${(cx / baseW) * 100}%`;
+              shapeDiv.style.height = `${(cy / baseH) * 100}%`;
+
+              // Shape Fill & Borders
+              const solidFill = spPr.getElementsByTagName('a:solidFill')[0];
+              if (solidFill) {
+                const fillClr = resolveColor(solidFill);
+                if (fillClr) shapeDiv.style.backgroundColor = fillClr;
+              }
+              const ln = spPr.getElementsByTagName('a:ln')[0];
+              if (ln) {
+                const lnClr = resolveColor(ln);
+                if (lnClr) shapeDiv.style.border = `1.5px solid ${lnClr}`;
+              }
+              const prstGeom = spPr.getElementsByTagName('a:prstGeom')[0];
+              if (prstGeom) {
+                const prst = prstGeom.getAttribute('prst');
+                if (prst === 'roundRect') shapeDiv.style.borderRadius = '6px';
+                if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
+              }
+
+              // Text inside Shape
+              const txBody = node.getElementsByTagName('p:txBody')[0];
+              if (txBody) {
+                const paras = txBody.getElementsByTagName('a:p');
+                for (const p of paras) {
+                  const pPr = p.getElementsByTagName('a:pPr')[0];
+                  const algn = pPr?.getAttribute('algn') || 'l';
+
+                  const pTag = document.createElement('div');
+                  pTag.style.textAlign = algn === 'ctr' ? 'center' : (algn === 'r' ? 'right' : 'left');
+                  pTag.style.lineHeight = '1.3';
+
+                  const runs = p.getElementsByTagName('a:r');
+                  for (const r of runs) {
+                    const t = r.getElementsByTagName('a:t')[0]?.textContent || '';
+                    const rPr = r.getElementsByTagName('a:rPr')[0];
+
+                    const span = document.createElement('span');
+                    span.textContent = t;
+
+                    if (rPr) {
+                      if (rPr.getAttribute('b') === '1') span.style.fontWeight = 'bold';
+                      if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
+                      const sz = parseInt(rPr.getAttribute('sz'), 10);
+                      if (sz) {
+                        span.style.fontSize = `clamp(9px, ${(sz / 100) * 0.9}px, 26px)`;
+                      } else {
+                        span.style.fontSize = '12px';
+                      }
+                      const txtClr = resolveColor(rPr);
+                      if (txtClr) span.style.color = txtClr;
+                    }
+                    pTag.appendChild(span);
+                  }
+                  if (pTag.hasChildNodes()) shapeDiv.appendChild(pTag);
+                }
+              }
+
+              targetContainer.appendChild(shapeDiv);
+            }
+
+            // Pictures / Figures
+            if (tag === 'p:pic') {
+              const spPr = node.getElementsByTagName('p:spPr')[0];
+              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
+              const blip = node.getElementsByTagName('a:blip')[0];
+              if (xfrm && blip) {
+                const rId = blip.getAttribute('r:embed');
+                const off = xfrm.getElementsByTagName('a:off')[0];
+                const ext = xfrm.getElementsByTagName('a:ext')[0];
+
+                if (rId && imgMap[rId] && off && ext) {
+                  const x = parseInt(off.getAttribute('x'), 10);
+                  const y = parseInt(off.getAttribute('y'), 10);
+                  const cx = parseInt(ext.getAttribute('cx'), 10);
+                  const cy = parseInt(ext.getAttribute('cy'), 10);
+
+                  const img = document.createElement('img');
+                  img.src = imgMap[rId];
+                  img.className = 'ppt-pic';
+                  img.style.left = `${(x / baseW) * 100}%`;
+                  img.style.top = `${(y / baseH) * 100}%`;
+                  img.style.width = `${(cx / baseW) * 100}%`;
+                  img.style.height = `${(cy / baseH) * 100}%`;
+                  targetContainer.appendChild(img);
+                }
+              }
+            }
+
+            // Tables
+            if (tag === 'p:graphicFrame') {
+              const tbl = node.getElementsByTagName('a:tbl')[0];
+              const xfrm = node.getElementsByTagName('p:xfrm')[0];
+              if (tbl && xfrm) {
+                const off = xfrm.getElementsByTagName('a:off')[0];
+                const ext = xfrm.getElementsByTagName('a:ext')[0];
+                if (off && ext) {
+                  const x = parseInt(off.getAttribute('x'), 10);
+                  const y = parseInt(off.getAttribute('y'), 10);
+                  const cx = parseInt(ext.getAttribute('cx'), 10);
+                  const cy = parseInt(ext.getAttribute('cy'), 10);
+
+                  const box = document.createElement('div');
+                  box.className = 'ppt-table-box';
+                  box.style.left = `${(x / baseW) * 100}%`;
+                  box.style.top = `${(y / baseH) * 100}%`;
+                  box.style.width = `${(cx / baseW) * 100}%`;
+                  box.style.height = `${(cy / baseH) * 100}%`;
+
+                  const tableElem = document.createElement('table');
+                  tableElem.style.width = '100%';
+                  tableElem.style.borderCollapse = 'collapse';
+
+                  const rows = tbl.getElementsByTagName('a:tr');
+                  for (const row of rows) {
+                    const tr = document.createElement('tr');
+                    for (const cell of row.getElementsByTagName('a:tc')) {
+                      const td = document.createElement('td');
+                      td.style.border = '1px solid #cbd5e1';
+                      td.style.padding = '4px 6px';
+                      td.style.fontSize = '11px';
+                      td.textContent = cell.textContent.trim();
+                      tr.appendChild(td);
+                    }
+                    tableElem.appendChild(tr);
+                  }
+                  box.appendChild(tableElem);
+                  targetContainer.appendChild(box);
+                }
               }
             }
           }
         }
 
-        // Extract Images
-        const pics = xmlDoc.getElementsByTagName('p:pic');
-        for (const pic of pics) {
-          const blip = pic.getElementsByTagName('a:blip')[0];
-          if (blip) {
-            const rId = blip.getAttribute('r:embed') || blip.getAttribute('r:link');
-            if (rId && imgMap[rId]) {
-              const img = document.createElement('img');
-              img.src = imgMap[rId];
-              img.className = 'ppt-image';
-              body.appendChild(img);
-            }
-          }
+        const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
+        if (spTree) {
+          processElements(spTree, stage, sldW, sldH);
         }
 
-        // Extract Tables
-        const tables = xmlDoc.getElementsByTagName('a:tbl');
-        for (const tbl of tables) {
-          const tableElem = document.createElement('table');
-          tableElem.className = 'ppt-table';
-          const rows = tbl.getElementsByTagName('a:tr');
-          for (const row of rows) {
-            const tr = document.createElement('tr');
-            const cells = row.getElementsByTagName('a:tc');
-            for (const cell of cells) {
-              const td = document.createElement('td');
-              let cText = '';
-              const texts = cell.getElementsByTagName('a:t');
-              for (const t of texts) {
-                cText += t.textContent + ' ';
-              }
-              td.textContent = cText.trim();
-              tr.appendChild(td);
-            }
-            tableElem.appendChild(tr);
-          }
-          body.appendChild(tableElem);
-        }
-
-        if (!body.hasChildNodes()) {
-          const emptyNote = document.createElement('p');
-          emptyNote.style.color = '#a0aec0';
-          emptyNote.style.fontStyle = 'italic';
-          emptyNote.textContent = '(Graphic layout slide)';
-          body.appendChild(emptyNote);
-        }
-
-        card.appendChild(body);
+        card.appendChild(stage);
         viewer.appendChild(card);
       }
     }
@@ -430,8 +624,11 @@
       scale = 1.0;
       zoomWrapper.style.transform = 'scale(1)';
 
-      const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
-      viewer.innerHTML = '<p style="color: #4f46e5; text-align: center; margin-top: 50px;">Opening document...</p>';
+      const fileName = file.name || 'document.docx';
+      updateTitle(fileName);
+
+      const ext = fileName.split('.').pop().toLowerCase();
+      viewer.innerHTML = `<p style="color: #4f46e5; text-align: center; margin-top: 60px;">Opening ${fileName}...</p>`;
 
       try {
         if (ext === 'docx') {
@@ -449,13 +646,11 @@
           viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
         } else if (ext === 'pptx') {
           await renderPptx(file);
-        } else if (ext === 'ppt') {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Old .ppt binary format detected. Please save or export it as .pptx.</p>';
         } else {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Unsupported file format.</p>';
+          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 60px;">Unsupported file format.</p>';
         }
       } catch (err) {
-        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 50px;">Error rendering: ${err.message}</p>`;
+        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 60px;">Error rendering: ${err.message}</p>`;
       }
     }
 
