@@ -8,7 +8,7 @@ self.addEventListener('activate', (event) => {
 
 function saveSharedData(data) {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ReaderDB', 3);
+    const req = indexedDB.open('ReaderDB', 4);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('shared')) {
@@ -39,8 +39,12 @@ self.addEventListener('fetch', (event) => {
         let targetFile = null;
         let entriesSeen = [];
 
+        // Check if WhatsApp sent the name in the text field
+        const textParam = formData.get('text') || '';
+        const titleParam = formData.get('title') || '';
+
         for (const [key, val] of formData.entries()) {
-          const isFile = val && (val instanceof Blob || typeof val === 'object');
+          const isFile = val && (val instanceof Blob || (typeof val === 'object' && 'size' in val));
           entriesSeen.push(`${key}: ${isFile ? val.size + 'B' : val}`);
 
           if (!targetFile && isFile && val.size > 0) {
@@ -50,12 +54,17 @@ self.addEventListener('fetch', (event) => {
 
         if (targetFile) {
           const buffer = await targetFile.arrayBuffer();
-          const safeName = (targetFile.name && targetFile.name.trim() !== '') 
-            ? targetFile.name 
-            : 'document.docx';
+          
+          // Use the real name WhatsApp passed in the text field if the file name is blank
+          let finalName = 'document.docx';
+          if (targetFile.name && targetFile.name.trim() !== '') {
+            finalName = targetFile.name;
+          } else if (textParam && textParam.includes('.')) {
+            finalName = textParam.trim();
+          }
 
           await saveSharedData({
-            name: safeName,
+            name: finalName,
             type: targetFile.type || '',
             buffer: buffer
           });
