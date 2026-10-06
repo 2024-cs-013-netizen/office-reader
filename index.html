@@ -47,8 +47,6 @@
       display: inline-block; 
       font-weight: 500;
     }
-    
-    /* Viewer Container */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -65,12 +63,7 @@
       min-height: 75vh;
       overflow-x: auto;
     }
-
-    /* OVERRIDE DOCX-PREVIEW TO FORCE MOBILE FIT */
-    .docx-wrapper { 
-      background: transparent !important; 
-      padding: 0 !important; 
-    }
+    .docx-wrapper { background: transparent !important; padding: 0 !important; }
     .docx-wrapper > section.docx { 
       width: 100% !important; 
       max-width: 100% !important; 
@@ -80,28 +73,10 @@
       box-shadow: none !important; 
       box-sizing: border-box !important;
     }
-    .docx-wrapper img {
-      max-width: 100% !important;
-      height: auto !important;
-    }
-
-    /* OVERRIDE EXCEL TABLE TO SCROLL CLEANLY */
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    table { 
-      border-collapse: collapse; 
-      width: 100%; 
-      white-space: nowrap; 
-    }
-    th, td { 
-      border: 1px solid #d1d5db; 
-      padding: 6px 10px; 
-      font-size: 0.8rem; 
-      text-align: left; 
-    }
+    .docx-wrapper img { max-width: 100% !important; height: auto !important; }
+    .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { border-collapse: collapse; width: 100%; white-space: nowrap; }
+    th, td { border: 1px solid #d1d5db; padding: 6px 10px; font-size: 0.8rem; text-align: left; }
     th { background: #f3f4f6; font-weight: 600; }
   </style>
 </head>
@@ -119,7 +94,7 @@
   <div id="viewer-container">
     <div id="viewer">
       <p style="color: #6b7280; text-align: center; margin-top: 40px; font-size: 0.9rem;">
-        Choose a file to view it directly on your screen.
+        Choose a file or share one from WhatsApp.
       </p>
     </div>
   </div>
@@ -128,33 +103,56 @@
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
 
-    fileInput.addEventListener('change', async (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
+    // 1. Register the Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(() => {
+        console.log('Service Worker Registered');
+      });
+    }
 
-      const ext = file.name.split('.').pop().toLowerCase();
+    // 2. Render Engine
+    async function renderFile(file) {
+      const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
       viewer.innerHTML = '<p style="color: #6b7280; text-align: center; margin-top: 40px;">Rendering file...</p>';
 
       try {
-        if (ext === 'docx') {
+        if (ext === 'docx' || file.type.includes('word')) {
           viewer.innerHTML = '';
           await docx.renderAsync(file, viewer, null, {
             inWrapper: true,
             ignoreWidth: true,
             breakPages: false
           });
-        } else if (ext === 'xlsx' || ext === 'xls') {
+        } else {
           const data = await file.arrayBuffer();
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.SheetNames[0];
           const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
           viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
-        } else {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center;">Unsupported file format.</p>';
         }
       } catch (err) {
-        viewer.innerHTML = '<p style="color: #ef4444; text-align: center;">Error opening file: ' + err.message + '</p>';
+        viewer.innerHTML = '<p style="color: #ef4444; text-align: center;">Error rendering: ' + err.message + '</p>';
       }
+    }
+
+    // 3. Check if opened via WhatsApp Share
+    window.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('shared') === 'true') {
+        const cache = await caches.open('shared-files');
+        const response = await cache.match('incoming-file');
+        if (response) {
+          const blob = await response.blob();
+          await renderFile(blob);
+          await cache.delete('incoming-file');
+        }
+      }
+    });
+
+    // 4. Manual File Picker
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (file) renderFile(file);
     });
   </script>
 </body>
