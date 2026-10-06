@@ -4,12 +4,19 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f111a",
-  "theme_color": "#1a1c29",
+  "theme_color": "#0f111a",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/337/337946.png",
       "sizes": "512x512",
       "type": "image/png"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title"
+    }
+  }
 }
