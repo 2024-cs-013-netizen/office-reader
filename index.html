@@ -32,7 +32,7 @@
       overflow: hidden;
     }
 
-    /* HEADER WITH DYNAMIC FILE NAME */
+    /* HEADER */
     header { 
       padding: 10px 14px; 
       background: #1a1c29; 
@@ -77,7 +77,7 @@
       font-weight: 500;
     }
 
-    /* ZERO-VOID SCROLL CONTAINER */
+    /* CONTAINER WITHOUT VOID */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -86,11 +86,10 @@
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
       background: #0f111a;
-      padding: 12px 12px 20px 12px; /* Tight padding, stops blank bottom void */
+      padding: 12px 12px 24px 12px;
       touch-action: pan-x pan-y;
     }
 
-    /* ZOOM WRAPPER LOCKED TO TOP-LEFT */
     #zoom-wrapper {
       display: block;
       transform-origin: 0 0;
@@ -104,11 +103,10 @@
       padding: 0;
       margin: 0;
       width: 100%;
-      min-height: auto; /* Kills bottom dead space */
       display: block;
     }
 
-    /* WORD DOCUMENT (NO LEFT-VOID / ZERO MARGIN CUTOFF) */
+    /* WORD DOCUMENT STYLING */
     .docx-wrapper { 
       background: transparent !important; 
       padding: 0 !important; 
@@ -118,13 +116,13 @@
     .docx-wrapper > section.docx { 
       min-width: 580px !important; 
       padding: 24px 20px !important; 
-      margin: 0 0 16px 0 !important; /* Starts at left:0, no phantom gap */
+      margin: 0 0 16px 0 !important; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
       background: #ffffff !important;
       border-radius: 6px;
     }
 
-    /* EXCEL TABLE */
+    /* EXCEL TABLE STYLING */
     .table-wrapper {
       width: 100%;
       overflow-x: auto;
@@ -144,22 +142,22 @@
     }
     th { background: #f3f4f6; font-weight: 600; }
 
-    /* POWERPOINT 16:9 PRESENTATION STAGE */
+    /* POWERPOINT PRESENTATION STAGE */
     .ppt-slide-card {
       background: #181a24;
       border-radius: 10px;
-      margin: 0 0 20px 0;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-      overflow: hidden;
+      margin: 0 0 24px 0;
+      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
       width: 100%;
-      min-width: 580px;
-      max-width: 800px;
+      min-width: 620px;
+      max-width: 860px;
       border: 1px solid #282c3f;
+      overflow: visible;
     }
     .ppt-slide-header {
       background: #202332;
       color: #8da2fb;
-      padding: 6px 14px;
+      padding: 7px 14px;
       font-size: 0.75rem;
       font-weight: 600;
       letter-spacing: 0.5px;
@@ -167,12 +165,15 @@
       display: flex;
       justify-content: space-between;
       border-bottom: 1px solid #282c3f;
+      border-radius: 10px 10px 0 0;
     }
     .ppt-stage {
       position: relative;
       width: 100%;
-      aspect-ratio: 16 / 9;
+      container-type: inline-size; /* Scales fonts relative to the card */
       background: #ffffff;
+      box-sizing: border-box;
+      border-radius: 0 0 10px 10px;
       overflow: hidden;
     }
     .ppt-shape {
@@ -180,9 +181,9 @@
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      padding: 4px 6px;
-      overflow: hidden;
+      justify-content: flex-start;
+      padding: 4px 8px;
+      overflow: visible;
       word-break: break-word;
     }
     .ppt-pic {
@@ -233,7 +234,7 @@
     }
 
     // ---------------------------------------------------------
-    // PERSISTENT TOUCH PINCH-TO-ZOOM ENGINE
+    // TOUCH PINCH-TO-ZOOM ENGINE
     // ---------------------------------------------------------
     let scale = 1.0;
     let initialDist = 0;
@@ -297,18 +298,19 @@
     });
 
     // ---------------------------------------------------------
-    // POWERPOINT (PPTX) 16:9 GEOMETRIC & DIAGRAM ENGINE
+    // FULL PPTX ENGINE WITH LAYOUT RESOLUTION & DIAGRAM SUPPORT
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
+      const domParser = new DOMParser();
 
-      // 1. Resolve Slide Size (Width & Height)
+      // 1. Resolve Slide Dimensions
       let sldW = 12192000;
       let sldH = 6858000;
       if (zip.file('ppt/presentation.xml')) {
         const presXml = await zip.file('ppt/presentation.xml').async('text');
-        const presDoc = new DOMParser().parseFromString(presXml, 'application/xml');
+        const presDoc = domParser.parseFromString(presXml, 'application/xml');
         const sldSz = presDoc.getElementsByTagName('p:sldSz')[0];
         if (sldSz) {
           sldW = parseInt(sldSz.getAttribute('cx'), 10) || sldW;
@@ -318,24 +320,32 @@
 
       // 2. Resolve Theme Colors
       const themeColors = {
+        'dk1': '#111827',
+        'lt1': '#ffffff',
+        'dk2': '#1f2937',
+        'lt2': '#f3f4f6',
         'accent1': '#2563eb',
         'accent2': '#dc2626',
         'accent3': '#16a34a',
         'accent4': '#9333ea',
         'accent5': '#0891b2',
         'accent6': '#ea580c',
-        'dk1': '#1e293b',
-        'lt1': '#ffffff'
+        'tx1': '#111827',
+        'tx2': '#4b5563',
+        'bg1': '#ffffff',
+        'bg2': '#f3f4f6'
       };
 
       if (zip.file('ppt/theme/theme1.xml')) {
         const themeXml = await zip.file('ppt/theme/theme1.xml').async('text');
-        const themeDoc = new DOMParser().parseFromString(themeXml, 'application/xml');
+        const themeDoc = domParser.parseFromString(themeXml, 'application/xml');
         for (const key of Object.keys(themeColors)) {
           const node = themeDoc.getElementsByTagName('a:' + key)[0];
           if (node) {
             const srgb = node.getElementsByTagName('a:srgbClr')[0];
+            const sys = node.getElementsByTagName('a:sysClr')[0];
             if (srgb) themeColors[key] = '#' + srgb.getAttribute('val');
+            else if (sys && sys.getAttribute('lastClr')) themeColors[key] = '#' + sys.getAttribute('lastClr');
           }
         }
       }
@@ -349,10 +359,56 @@
           const val = scheme.getAttribute('val');
           return themeColors[val] || null;
         }
+        const sys = elem.getElementsByTagName('a:sysClr')[0];
+        if (sys && sys.getAttribute('lastClr')) return '#' + sys.getAttribute('lastClr');
         return null;
       }
 
-      // 3. Find and Sort Slide Files
+      // 3. Helper: Load Slide Layout Map (Resolves Missing Titles & Body Positions)
+      async function loadLayoutMap(relsXmlStr) {
+        const relsDoc = domParser.parseFromString(relsXmlStr, 'application/xml');
+        const rels = relsDoc.getElementsByTagName('Relationship');
+        let layoutPath = null;
+        for (const rel of rels) {
+          const type = rel.getAttribute('Type') || '';
+          if (type.endsWith('/slideLayout')) {
+            const target = rel.getAttribute('Target');
+            layoutPath = 'ppt/' + target.replace(/^\.\.\//, '');
+            break;
+          }
+        }
+        if (!layoutPath || !zip.file(layoutPath)) return {};
+
+        const layoutXml = await zip.file(layoutPath).async('text');
+        const layoutDoc = domParser.parseFromString(layoutXml, 'application/xml');
+        const phMap = {};
+
+        const layoutShapes = layoutDoc.getElementsByTagName('p:sp');
+        for (const sp of layoutShapes) {
+          const ph = sp.getElementsByTagName('p:ph')[0];
+          if (!ph) continue;
+          const type = ph.getAttribute('type') || 'body';
+          const idx = ph.getAttribute('idx') || '0';
+          const xfrm = sp.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
+          if (xfrm) {
+            const off = xfrm.getElementsByTagName('a:off')[0];
+            const ext = xfrm.getElementsByTagName('a:ext')[0];
+            if (off && ext) {
+              const coords = {
+                x: parseInt(off.getAttribute('x'), 10),
+                y: parseInt(off.getAttribute('y'), 10),
+                cx: parseInt(ext.getAttribute('cx'), 10),
+                cy: parseInt(ext.getAttribute('cy'), 10)
+              };
+              phMap[type] = coords;
+              phMap[`idx_${idx}`] = coords;
+            }
+          }
+        }
+        return phMap;
+      }
+
+      // 4. Find and Sort Slides
       const slidePaths = [];
       zip.forEach((path) => {
         if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
@@ -368,18 +424,21 @@
         return;
       }
 
-      const domParser = new DOMParser();
-
+      // 5. Render Every Slide
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
         const slideXmlStr = await zip.file(path).async('text');
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
-        // Extract Images Mapping for this slide
+        // Extract Relationships (Images & Layouts)
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
         const imgMap = {};
+        let layoutPhMap = {};
+
         if (zip.file(relsPath)) {
           const relsXml = await zip.file(relsPath).async('text');
+          layoutPhMap = await loadLayoutMap(relsXml);
+
           const relsDoc = domParser.parseFromString(relsXml, 'application/xml');
           const rels = relsDoc.getElementsByTagName('Relationship');
           for (const rel of rels) {
@@ -395,7 +454,6 @@
           }
         }
 
-        // Slide Card Container
         const card = document.createElement('div');
         card.className = 'ppt-slide-card';
 
@@ -406,8 +464,8 @@
 
         const stage = document.createElement('div');
         stage.className = 'ppt-stage';
+        stage.style.aspectRatio = `${sldW} / ${sldH}`;
 
-        // Check Slide Background Color
         const bg = xmlDoc.getElementsByTagName('p:bg')[0];
         if (bg) {
           const bgColor = resolveColor(bg);
@@ -419,13 +477,12 @@
           for (const node of parentXml.children) {
             const tag = node.tagName;
 
-            // Group Shapes (Diagrams / Flowcharts / SmartArt groups)
+            // Group Shapes (Diagrams, Mind Maps, Flowcharts)
             if (tag === 'p:grpSp') {
               const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
               if (grpXfrm) {
                 const off = grpXfrm.getElementsByTagName('a:off')[0];
                 const ext = grpXfrm.getElementsByTagName('a:ext')[0];
-                const chOff = grpXfrm.getElementsByTagName('a:chOff')[0];
                 const chExt = grpXfrm.getElementsByTagName('a:chExt')[0];
 
                 if (off && ext) {
@@ -451,88 +508,184 @@
               continue;
             }
 
-            // Normal Shapes (Text Boxes, Geometric Cards, Rectangles)
+            // Normal Shapes & Titles
             if (tag === 'p:sp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
-              if (!xfrm) continue;
+              let pos = null;
 
-              const off = xfrm.getElementsByTagName('a:off')[0];
-              const ext = xfrm.getElementsByTagName('a:ext')[0];
-              if (!off || !ext) continue;
+              if (xfrm) {
+                const off = xfrm.getElementsByTagName('a:off')[0];
+                const ext = xfrm.getElementsByTagName('a:ext')[0];
+                if (off && ext) {
+                  pos = {
+                    x: parseInt(off.getAttribute('x'), 10),
+                    y: parseInt(off.getAttribute('y'), 10),
+                    cx: parseInt(ext.getAttribute('cx'), 10),
+                    cy: parseInt(ext.getAttribute('cy'), 10)
+                  };
+                }
+              }
 
-              const x = parseInt(off.getAttribute('x'), 10);
-              const y = parseInt(off.getAttribute('y'), 10);
-              const cx = parseInt(ext.getAttribute('cx'), 10);
-              const cy = parseInt(ext.getAttribute('cy'), 10);
+              // Fallback to Layout Template Placeholder if xfrm is missing
+              if (!pos) {
+                const ph = node.getElementsByTagName('p:ph')[0];
+                if (ph) {
+                  const type = ph.getAttribute('type') || 'body';
+                  const idx = ph.getAttribute('idx');
+                  if (idx && layoutPhMap[`idx_${idx}`]) pos = layoutPhMap[`idx_${idx}`];
+                  else if (layoutPhMap[type]) pos = layoutPhMap[type];
+                  else {
+                    if (type.includes('Title') || type === 'title' || type === 'ctrTitle') {
+                      pos = { x: baseW * 0.05, y: baseH * 0.06, cx: baseW * 0.9, cy: baseH * 0.16 };
+                    } else {
+                      pos = { x: baseW * 0.05, y: baseH * 0.24, cx: baseW * 0.9, cy: baseH * 0.70 };
+                    }
+                  }
+                }
+              }
+
+              if (!pos) continue;
 
               const shapeDiv = document.createElement('div');
               shapeDiv.className = 'ppt-shape';
-              shapeDiv.style.left = `${(x / baseW) * 100}%`;
-              shapeDiv.style.top = `${(y / baseH) * 100}%`;
-              shapeDiv.style.width = `${(cx / baseW) * 100}%`;
-              shapeDiv.style.height = `${(cy / baseH) * 100}%`;
+              shapeDiv.style.left = `${(pos.x / baseW) * 100}%`;
+              shapeDiv.style.top = `${(pos.y / baseH) * 100}%`;
+              shapeDiv.style.width = `${(pos.cx / baseW) * 100}%`;
+              shapeDiv.style.minHeight = `${(pos.cy / baseH) * 100}%`;
 
-              // Shape Fill & Borders
-              const solidFill = spPr.getElementsByTagName('a:solidFill')[0];
-              if (solidFill) {
-                const fillClr = resolveColor(solidFill);
-                if (fillClr) shapeDiv.style.backgroundColor = fillClr;
+              // Fill and Borders (Direct or via Theme Style)
+              const solidFill = spPr?.getElementsByTagName('a:solidFill')[0];
+              let bgClr = resolveColor(solidFill);
+
+              const ln = spPr?.getElementsByTagName('a:ln')[0];
+              let borderClr = ln ? resolveColor(ln.getElementsByTagName('a:solidFill')[0] || ln) : null;
+
+              // Read Theme Style References (<p:style>) for Colored Diagram Boxes
+              const style = node.getElementsByTagName('p:style')[0];
+              if (style) {
+                if (!bgClr) {
+                  const fillRef = style.getElementsByTagName('a:fillRef')[0];
+                  if (fillRef && parseInt(fillRef.getAttribute('idx'), 10) > 0) {
+                    bgClr = resolveColor(fillRef);
+                  }
+                }
+                if (!borderClr) {
+                  const lnRef = style.getElementsByTagName('a:lnRef')[0];
+                  if (lnRef && parseInt(lnRef.getAttribute('idx'), 10) > 0) {
+                    borderClr = resolveColor(lnRef);
+                  }
+                }
               }
-              const ln = spPr.getElementsByTagName('a:ln')[0];
-              if (ln) {
-                const lnClr = resolveColor(ln);
-                if (lnClr) shapeDiv.style.border = `1.5px solid ${lnClr}`;
-              }
-              const prstGeom = spPr.getElementsByTagName('a:prstGeom')[0];
+
+              if (bgClr) shapeDiv.style.backgroundColor = bgClr;
+              if (borderClr) shapeDiv.style.border = `1.5px solid ${borderClr}`;
+
+              const prstGeom = spPr?.getElementsByTagName('a:prstGeom')[0];
               if (prstGeom) {
                 const prst = prstGeom.getAttribute('prst');
                 if (prst === 'roundRect') shapeDiv.style.borderRadius = '6px';
                 if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
               }
 
-              // Text inside Shape
+              // Extract Text Paragraphs & Formatted Runs
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
                 const paras = txBody.getElementsByTagName('a:p');
                 for (const p of paras) {
                   const pPr = p.getElementsByTagName('a:pPr')[0];
                   const algn = pPr?.getAttribute('algn') || 'l';
+                  const lvl = parseInt(pPr?.getAttribute('lvl') || '0', 10);
+                  const isBullet = pPr?.getElementsByTagName('a:buChar')[0] || pPr?.getElementsByTagName('a:buAutoNum')[0] || (lvl > 0);
 
-                  const pTag = document.createElement('div');
-                  pTag.style.textAlign = algn === 'ctr' ? 'center' : (algn === 'r' ? 'right' : 'left');
-                  pTag.style.lineHeight = '1.3';
+                  const pDiv = document.createElement('div');
+                  pDiv.style.textAlign = algn === 'ctr' ? 'center' : (algn === 'r' ? 'right' : 'left');
+                  pDiv.style.lineHeight = '1.35';
+                  pDiv.style.marginBottom = '3px';
+                  if (lvl > 0) pDiv.style.paddingLeft = `${lvl * 14}px`;
 
-                  const runs = p.getElementsByTagName('a:r');
-                  for (const r of runs) {
-                    const t = r.getElementsByTagName('a:t')[0]?.textContent || '';
-                    const rPr = r.getElementsByTagName('a:rPr')[0];
-
-                    const span = document.createElement('span');
-                    span.textContent = t;
-
-                    if (rPr) {
-                      if (rPr.getAttribute('b') === '1') span.style.fontWeight = 'bold';
-                      if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
-                      const sz = parseInt(rPr.getAttribute('sz'), 10);
-                      if (sz) {
-                        span.style.fontSize = `clamp(9px, ${(sz / 100) * 0.9}px, 26px)`;
-                      } else {
-                        span.style.fontSize = '12px';
-                      }
-                      const txtClr = resolveColor(rPr);
-                      if (txtClr) span.style.color = txtClr;
-                    }
-                    pTag.appendChild(span);
+                  if (isBullet) {
+                    const bu = document.createElement('span');
+                    bu.textContent = '• ';
+                    bu.style.fontWeight = 'bold';
+                    bu.style.color = '#4f46e5';
+                    pDiv.appendChild(bu);
                   }
-                  if (pTag.hasChildNodes()) shapeDiv.appendChild(pTag);
+
+                  for (const child of p.childNodes) {
+                    if (child.nodeName === 'a:r' || child.nodeName === 'a:fld') {
+                      const t = child.getElementsByTagName('a:t')[0]?.textContent || '';
+                      if (!t) continue;
+
+                      const span = document.createElement('span');
+                      span.textContent = t;
+
+                      const rPr = child.getElementsByTagName('a:rPr')[0];
+                      if (rPr) {
+                        if (rPr.getAttribute('b') === '1') span.style.fontWeight = 'bold';
+                        if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
+                        if (rPr.getAttribute('u') === 'sng') span.style.textDecoration = 'underline';
+
+                        const sz = parseInt(rPr.getAttribute('sz'), 10);
+                        if (sz) {
+                          const ptSize = sz / 100;
+                          const sldW_pt = baseW / 12700;
+                          const cqwVal = (ptSize / sldW_pt) * 100;
+                          span.style.fontSize = `clamp(9px, ${cqwVal.toFixed(2)}cqw, 36px)`;
+                        } else {
+                          span.style.fontSize = 'clamp(10px, 1.8cqw, 20px)';
+                        }
+
+                        const txtClr = resolveColor(rPr);
+                        if (txtClr) span.style.color = txtClr;
+                      } else {
+                        span.style.fontSize = 'clamp(10px, 1.8cqw, 20px)';
+                      }
+
+                      pDiv.appendChild(span);
+                    } else if (child.nodeName === 'a:br') {
+                      pDiv.appendChild(document.createElement('br'));
+                    }
+                  }
+
+                  if (pDiv.hasChildNodes()) shapeDiv.appendChild(pDiv);
                 }
               }
 
               targetContainer.appendChild(shapeDiv);
             }
 
-            // Pictures / Figures
+            // Connector Lines (Diagram / Mind Map Links)
+            if (tag === 'p:cxnSp') {
+              const spPr = node.getElementsByTagName('p:spPr')[0];
+              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
+              if (xfrm) {
+                const off = xfrm.getElementsByTagName('a:off')[0];
+                const ext = xfrm.getElementsByTagName('a:ext')[0];
+                if (off && ext) {
+                  const x = parseInt(off.getAttribute('x'), 10);
+                  const y = parseInt(off.getAttribute('y'), 10);
+                  const cx = parseInt(ext.getAttribute('cx'), 10);
+                  const cy = parseInt(ext.getAttribute('cy'), 10);
+
+                  const line = document.createElement('div');
+                  line.style.position = 'absolute';
+                  line.style.left = `${(x / baseW) * 100}%`;
+                  line.style.top = `${(y / baseH) * 100}%`;
+                  line.style.width = `${Math.max((cx / baseW) * 100, 0.2)}%`;
+                  line.style.height = `${Math.max((cy / baseH) * 100, 0.2)}%`;
+
+                  const ln = spPr.getElementsByTagName('a:ln')[0];
+                  const lnClr = resolveColor(ln?.getElementsByTagName('a:solidFill')[0] || ln) || '#64748b';
+                  if (cx >= cy) line.style.borderTop = `2px solid ${lnClr}`;
+                  else line.style.borderLeft = `2px solid ${lnClr}`;
+
+                  targetContainer.appendChild(line);
+                }
+              }
+            }
+
+            // Pictures & Figures
             if (tag === 'p:pic') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
