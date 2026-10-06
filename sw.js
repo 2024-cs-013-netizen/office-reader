@@ -6,10 +6,9 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(clients.claim());
 });
 
-// Helper: Save raw file bytes into IndexedDB
 function saveSharedData(data) {
   return new Promise((resolve, reject) => {
-    const req = indexedDB.open('ReaderDB', 2);
+    const req = indexedDB.open('ReaderDB', 3);
     req.onupgradeneeded = (e) => {
       const db = e.target.result;
       if (!db.objectStoreNames.contains('shared')) {
@@ -38,28 +37,18 @@ self.addEventListener('fetch', (event) => {
       try {
         const formData = await event.request.formData();
         let targetFile = null;
-        let debugLog = [];
+        let entriesSeen = [];
 
-        // Check every piece of data Android sent over
-        for (const [key, value] of formData.entries()) {
-          const isFileLike = value && (value instanceof Blob || (typeof value === 'object' && 'size' in value));
-          debugLog.push(`${key} (${isFileLike ? value.size + ' bytes' : value})`);
-          
-          if (!targetFile && isFileLike && value.size > 0) {
-            targetFile = value;
+        for (const [key, val] of formData.entries()) {
+          const isFile = val && (val instanceof Blob || typeof val === 'object');
+          entriesSeen.push(`${key}: ${isFile ? val.size + 'B' : val}`);
+
+          if (!targetFile && isFile && val.size > 0) {
+            targetFile = val;
           }
         }
 
-        // Fallback: check the direct field name
-        if (!targetFile) {
-          const direct = formData.get('shared_file');
-          if (direct && (direct instanceof Blob || typeof direct === 'object')) {
-            targetFile = direct;
-          }
-        }
-
-        if (targetFile && targetFile.size > 0) {
-          // Read into an ArrayBuffer so no data stream gets cut off
+        if (targetFile) {
           const buffer = await targetFile.arrayBuffer();
           const safeName = (targetFile.name && targetFile.name.trim() !== '') 
             ? targetFile.name 
@@ -74,9 +63,8 @@ self.addEventListener('fetch', (event) => {
           const targetUrl = new URL('/?shared=1', self.location.origin).href;
           return Response.redirect(targetUrl, 303);
         } else {
-          // If Android dropped the payload, redirect with debug details
-          const debugInfo = encodeURIComponent(debugLog.join(' | ') || 'empty_payload');
-          const targetUrl = new URL(`/?shared=0&debug=${debugInfo}`, self.location.origin).href;
+          const debugText = encodeURIComponent(entriesSeen.join(' ; ') || 'empty_form');
+          const targetUrl = new URL(`/?shared=0&debug=${debugText}`, self.location.origin).href;
           return Response.redirect(targetUrl, 303);
         }
       } catch (err) {
