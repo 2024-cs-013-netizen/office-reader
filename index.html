@@ -68,7 +68,7 @@
       font-weight: 500;
     }
 
-    /* SCROLL CONTAINER (Left-Right & Top-Bottom) */
+    /* SCROLL CONTAINER */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -126,6 +126,64 @@
       text-align: left; 
     }
     th { background: #f3f4f6; font-weight: 600; }
+
+    /* POWERPOINT SLIDE CARDS */
+    .ppt-slide {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 25px;
+      min-width: 650px;
+      min-height: 380px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .ppt-slide-header {
+      background: #2d3748;
+      color: #edf2f7;
+      padding: 6px 14px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .ppt-slide-body {
+      padding: 24px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #fafafa;
+    }
+    .ppt-text {
+      font-size: 1rem;
+      color: #1a202c;
+      line-height: 1.5;
+    }
+    .ppt-image {
+      max-width: 100%;
+      height: auto;
+      border-radius: 6px;
+      margin: 8px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+    }
+    .ppt-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+      background: white;
+    }
+    .ppt-table td {
+      border: 1px solid #cbd5e0;
+      padding: 8px 10px;
+      font-size: 0.85rem;
+      color: #2d3748;
+    }
   </style>
 </head>
 <body>
@@ -136,15 +194,15 @@
   </header>
 
   <div class="upload-bar">
-    <label for="fileInput" class="btn">Select Document (.docx, .xlsx)</label>
-    <input type="file" id="fileInput" accept=".docx, .xlsx, .xls">
+    <label for="fileInput" class="btn">Select Document (.docx, .xlsx, .pptx)</label>
+    <input type="file" id="fileInput" accept=".docx, .xlsx, .xls, .pptx, .ppt">
   </div>
 
   <div id="viewer-container">
     <div id="zoom-wrapper">
       <div id="viewer">
         <p style="color: #6b7280; text-align: center; margin-top: 50px; font-size: 0.9rem;">
-          Select a document above to read it.
+          Select a Word, Excel, or PowerPoint document above.
         </p>
       </div>
     </div>
@@ -172,53 +230,45 @@
       return Math.hypot(dx, dy);
     }
 
-    // Touch Start: Detect when 2 fingers touch the glass
     container.addEventListener('touchstart', (e) => {
       touchMoved = false;
       if (e.touches.length === 2) {
         isPinching = true;
         initialDist = getDistance(e.touches);
-        initialScale = scale; // Lock onto the current scale as the baseline
+        initialScale = scale;
       }
     }, { passive: true });
 
-    // Touch Move: Scale dynamically with finger movement
     container.addEventListener('touchmove', (e) => {
       if (e.touches.length === 2 && initialDist > 0) {
-        e.preventDefault(); // Stop native page stutter
+        e.preventDefault();
         const currentDist = getDistance(e.touches);
         const factor = currentDist / initialDist;
-        
-        // Clamp scale between 0.5x and 3.5x
         scale = Math.min(Math.max(initialScale * factor, 0.5), 3.5);
         zoomWrapper.style.transform = `scale(${scale})`;
       } else if (e.touches.length === 1) {
-        touchMoved = true; // Mark as a scroll so it doesn't trigger tap reset
+        touchMoved = true;
       }
     }, { passive: false });
 
-    // Touch End: Lock zoom permanently on release
     container.addEventListener('touchend', (e) => {
       if (e.touches.length < 2) {
         initialDist = 0;
       }
 
-      // If we just finished a pinch gesture, lock it and do NOT reset
       if (isPinching) {
         if (e.touches.length === 0) {
           isPinching = false;
-          lastTap = 0; // Wipe the tap timer so finger liftoff is never read as a double-tap
+          lastTap = 0;
         }
         return;
       }
 
-      // Ignore normal 1-finger scrolling
       if (touchMoved) {
         lastTap = 0;
         return;
       }
 
-      // Deliberate 1-finger double tap to reset back to 1x
       if (e.touches.length === 0) {
         const now = Date.now();
         if (now - lastTap < 300) {
@@ -232,7 +282,147 @@
     });
 
     // ---------------------------------------------------------
-    // FILE RENDERING ENGINE
+    // POWERPOINT (.PPTX) PARSER ENGINE
+    // ---------------------------------------------------------
+    async function renderPptx(file) {
+      viewer.innerHTML = '';
+      const zip = await JSZip.loadAsync(file);
+
+      // Collect and sort slides numerically (slide1, slide2, ...)
+      const slidePaths = [];
+      zip.forEach((path) => {
+        if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) {
+          slidePaths.push(path);
+        }
+      });
+
+      slidePaths.sort((a, b) => {
+        const nA = parseInt(a.match(/slide(\d+)\.xml/i)[1], 10);
+        const nB = parseInt(b.match(/slide(\d+)\.xml/i)[1], 10);
+        return nA - nB;
+      });
+
+      if (slidePaths.length === 0) {
+        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">No slides found inside this presentation.</p>';
+        return;
+      }
+
+      const domParser = new DOMParser();
+
+      for (let i = 0; i < slidePaths.length; i++) {
+        const path = slidePaths[i];
+        const slideIndex = i + 1;
+        const slideXmlStr = await zip.file(path).async('text');
+        const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
+
+        // Build Slide Card
+        const card = document.createElement('div');
+        card.className = 'ppt-slide';
+
+        const header = document.createElement('div');
+        header.className = 'ppt-slide-header';
+        header.innerHTML = `<span>Slide ${slideIndex}</span><span>${slidePaths.length} Total</span>`;
+        card.appendChild(header);
+
+        const body = document.createElement('div');
+        body.className = 'ppt-slide-body';
+
+        // Load slide images mapping
+        const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
+        const imgMap = {};
+        if (zip.file(relsPath)) {
+          const relsXml = await zip.file(relsPath).async('text');
+          const relsDoc = domParser.parseFromString(relsXml, 'application/xml');
+          const rels = relsDoc.getElementsByTagName('Relationship');
+          for (const rel of rels) {
+            const rId = rel.getAttribute('Id');
+            const target = rel.getAttribute('Target');
+            if (target && target.includes('media/')) {
+              const cleanPath = 'ppt/' + target.replace(/^\.\.\//, '');
+              if (zip.file(cleanPath)) {
+                const blob = await zip.file(cleanPath).async('blob');
+                imgMap[rId] = URL.createObjectURL(blob);
+              }
+            }
+          }
+        }
+
+        // Extract Text Paragraphs
+        const shapes = xmlDoc.getElementsByTagName('p:sp');
+        for (const sp of shapes) {
+          const txBody = sp.getElementsByTagName('p:txBody')[0];
+          if (txBody) {
+            const paragraphs = txBody.getElementsByTagName('a:p');
+            for (const p of paragraphs) {
+              let textContent = '';
+              const texts = p.getElementsByTagName('a:t');
+              for (const t of texts) {
+                textContent += t.textContent;
+              }
+              if (textContent.trim()) {
+                const pTag = document.createElement('p');
+                pTag.className = 'ppt-text';
+                pTag.textContent = textContent;
+                body.appendChild(pTag);
+              }
+            }
+          }
+        }
+
+        // Extract Images
+        const pics = xmlDoc.getElementsByTagName('p:pic');
+        for (const pic of pics) {
+          const blip = pic.getElementsByTagName('a:blip')[0];
+          if (blip) {
+            const rId = blip.getAttribute('r:embed') || blip.getAttribute('r:link');
+            if (rId && imgMap[rId]) {
+              const img = document.createElement('img');
+              img.src = imgMap[rId];
+              img.className = 'ppt-image';
+              body.appendChild(img);
+            }
+          }
+        }
+
+        // Extract Tables
+        const tables = xmlDoc.getElementsByTagName('a:tbl');
+        for (const tbl of tables) {
+          const tableElem = document.createElement('table');
+          tableElem.className = 'ppt-table';
+          const rows = tbl.getElementsByTagName('a:tr');
+          for (const row of rows) {
+            const tr = document.createElement('tr');
+            const cells = row.getElementsByTagName('a:tc');
+            for (const cell of cells) {
+              const td = document.createElement('td');
+              let cText = '';
+              const texts = cell.getElementsByTagName('a:t');
+              for (const t of texts) {
+                cText += t.textContent + ' ';
+              }
+              td.textContent = cText.trim();
+              tr.appendChild(td);
+            }
+            tableElem.appendChild(tr);
+          }
+          body.appendChild(tableElem);
+        }
+
+        if (!body.hasChildNodes()) {
+          const emptyNote = document.createElement('p');
+          emptyNote.style.color = '#a0aec0';
+          emptyNote.style.fontStyle = 'italic';
+          emptyNote.textContent = '(Graphic layout slide)';
+          body.appendChild(emptyNote);
+        }
+
+        card.appendChild(body);
+        viewer.appendChild(card);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // MASTER DOCUMENT ROUTER
     // ---------------------------------------------------------
     async function renderFile(file) {
       if (!file) return;
@@ -257,8 +447,12 @@
           const firstSheet = workbook.SheetNames[0];
           const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
           viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
+        } else if (ext === 'pptx') {
+          await renderPptx(file);
+        } else if (ext === 'ppt') {
+          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Old .ppt binary format detected. Please save or export it as .pptx.</p>';
         } else {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Unsupported format.</p>';
+          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Unsupported file format.</p>';
         }
       } catch (err) {
         viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 50px;">Error rendering: ${err.message}</p>`;
