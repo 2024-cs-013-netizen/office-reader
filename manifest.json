@@ -13,10 +13,23 @@
     }
   ],
   "share_target": {
-    "action": "/",
-    "method": "GET",
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
     "params": {
-      "title": "title"
+      "files": [
+        {
+          "name": "shared_file",
+          "accept": [
+            ".docx",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xlsx",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".xls",
+            "application/vnd.ms-excel"
+          ]
+        }
+      ]
     }
   }
 }
