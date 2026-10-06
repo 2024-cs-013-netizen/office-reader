@@ -75,9 +75,11 @@
       font-size: 0.85rem; 
       display: inline-block; 
       font-weight: 500;
+      transition: background 0.2s;
     }
+    .btn:active { background: #4338ca; }
 
-    /* CONTAINER WITHOUT VOID */
+    /* SCROLL CONTAINER */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -88,6 +90,7 @@
       background: #0f111a;
       padding: 12px 12px 24px 12px;
       touch-action: pan-x pan-y;
+      position: relative;
     }
 
     #zoom-wrapper {
@@ -106,7 +109,27 @@
       display: block;
     }
 
-    /* WORD DOCUMENT STYLING */
+    /* SPINNER */
+    .loader-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      padding-top: 80px;
+    }
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 3.5px solid #2d3142;
+      border-top-color: #82aaff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; }
+
+    /* WORD STYLING */
     .docx-wrapper { 
       background: transparent !important; 
       padding: 0 !important; 
@@ -122,27 +145,55 @@
       border-radius: 6px;
     }
 
-    /* EXCEL TABLE STYLING */
+    /* EXCEL STYLING WITH TABS */
+    .excel-container {
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      overflow: hidden;
+      min-width: 580px;
+    }
+    .sheet-tabs {
+      display: flex;
+      gap: 6px;
+      padding: 8px 10px;
+      background: #1f2333;
+      overflow-x: auto;
+      border-bottom: 1px solid #2e344d;
+    }
+    .sheet-tab {
+      background: #2a2f45;
+      color: #94a3b8;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .sheet-tab.active {
+      background: #4f46e5;
+      color: #ffffff;
+    }
     .table-wrapper {
       width: 100%;
       overflow-x: auto;
-      background: #ffffff;
-      border-radius: 6px;
-      padding: 8px;
+      padding: 10px;
     }
     table { 
       border-collapse: collapse; 
       white-space: nowrap; 
     }
     th, td { 
-      border: 1px solid #d1d5db; 
+      border: 1px solid #cbd5e1; 
       padding: 6px 12px; 
       font-size: 0.85rem; 
       text-align: left; 
     }
-    th { background: #f3f4f6; font-weight: 600; }
+    th { background: #f1f5f9; font-weight: 600; }
 
-    /* POWERPOINT PRESENTATION STAGE */
+    /* PPTX STYLING */
     .ppt-slide-card {
       background: #181a24;
       border-radius: 10px;
@@ -152,7 +203,6 @@
       min-width: 620px;
       max-width: 860px;
       border: 1px solid #282c3f;
-      overflow: visible;
     }
     .ppt-slide-header {
       background: #202332;
@@ -170,7 +220,7 @@
     .ppt-stage {
       position: relative;
       width: 100%;
-      container-type: inline-size; /* Scales fonts relative to the card */
+      container-type: inline-size;
       background: #ffffff;
       box-sizing: border-box;
       border-radius: 0 0 10px 10px;
@@ -227,14 +277,36 @@
     const zoomWrapper = document.getElementById('zoom-wrapper');
     const docTitle = document.getElementById('doc-title');
 
+    // Memory tracker to release Blob URLs on each new file load
+    let activeObjectUrls = [];
+
+    function cleanupMemory() {
+      activeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+      activeObjectUrls = [];
+    }
+
     function updateTitle(name) {
       if (!name) return;
       docTitle.textContent = name;
       document.title = name;
     }
 
+    function showLoading(fileName) {
+      viewer.innerHTML = `
+        <div class="loader-box">
+          <div class="spinner"></div>
+          <div class="loader-text">Loading ${fileName}...</div>
+        </div>
+      `;
+    }
+
+    // Register Service Worker for offline capability
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js');
+    }
+
     // ---------------------------------------------------------
-    // TOUCH PINCH-TO-ZOOM ENGINE
+    // PERSISTENT TOUCH PINCH-TO-ZOOM ENGINE
     // ---------------------------------------------------------
     let scale = 1.0;
     let initialDist = 0;
@@ -271,9 +343,8 @@
     }, { passive: false });
 
     container.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) {
-        initialDist = 0;
-      }
+      if (e.touches.length < 2) initialDist = 0;
+
       if (isPinching) {
         if (e.touches.length === 0) {
           isPinching = false;
@@ -281,10 +352,12 @@
         }
         return;
       }
+
       if (touchMoved) {
         lastTap = 0;
         return;
       }
+
       if (e.touches.length === 0) {
         const now = Date.now();
         if (now - lastTap < 300) {
@@ -298,14 +371,51 @@
     });
 
     // ---------------------------------------------------------
-    // FULL PPTX ENGINE WITH LAYOUT RESOLUTION & DIAGRAM SUPPORT
+    // MULTI-SHEET EXCEL ENGINE
+    // ---------------------------------------------------------
+    async function renderExcel(file) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      viewer.innerHTML = '';
+      const excelBox = document.createElement('div');
+      excelBox.className = 'excel-container';
+
+      // Sheet Tabs Bar
+      const tabsBar = document.createElement('div');
+      tabsBar.className = 'sheet-tabs';
+
+      const tableContent = document.createElement('div');
+      tableContent.className = 'table-wrapper';
+
+      workbook.SheetNames.forEach((sheetName, index) => {
+        const btn = document.createElement('button');
+        btn.className = `sheet-tab ${index === 0 ? 'active' : ''}`;
+        btn.textContent = sheetName;
+        btn.addEventListener('click', () => {
+          excelBox.querySelectorAll('.sheet-tab').forEach((t) => t.classList.remove('active'));
+          btn.classList.add('active');
+          tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[sheetName]);
+        });
+        tabsBar.appendChild(btn);
+      });
+
+      // Render the first sheet initially
+      tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
+
+      excelBox.appendChild(tabsBar);
+      excelBox.appendChild(tableContent);
+      viewer.appendChild(excelBox);
+    }
+
+    // ---------------------------------------------------------
+    // POWERPOINT (PPTX) ENGINE WITH AUTO-MEMORY CLEANUP
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
       const domParser = new DOMParser();
 
-      // 1. Resolve Slide Dimensions
       let sldW = 12192000;
       let sldH = 6858000;
       if (zip.file('ppt/presentation.xml')) {
@@ -318,22 +428,10 @@
         }
       }
 
-      // 2. Resolve Theme Colors
       const themeColors = {
-        'dk1': '#111827',
-        'lt1': '#ffffff',
-        'dk2': '#1f2937',
-        'lt2': '#f3f4f6',
-        'accent1': '#2563eb',
-        'accent2': '#dc2626',
-        'accent3': '#16a34a',
-        'accent4': '#9333ea',
-        'accent5': '#0891b2',
-        'accent6': '#ea580c',
-        'tx1': '#111827',
-        'tx2': '#4b5563',
-        'bg1': '#ffffff',
-        'bg2': '#f3f4f6'
+        'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
+        'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
+        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c'
       };
 
       if (zip.file('ppt/theme/theme1.xml')) {
@@ -355,25 +453,19 @@
         const srgb = elem.getElementsByTagName('a:srgbClr')[0];
         if (srgb) return '#' + srgb.getAttribute('val');
         const scheme = elem.getElementsByTagName('a:schemeClr')[0];
-        if (scheme) {
-          const val = scheme.getAttribute('val');
-          return themeColors[val] || null;
-        }
+        if (scheme) return themeColors[scheme.getAttribute('val')] || null;
         const sys = elem.getElementsByTagName('a:sysClr')[0];
         if (sys && sys.getAttribute('lastClr')) return '#' + sys.getAttribute('lastClr');
         return null;
       }
 
-      // 3. Helper: Load Slide Layout Map (Resolves Missing Titles & Body Positions)
       async function loadLayoutMap(relsXmlStr) {
         const relsDoc = domParser.parseFromString(relsXmlStr, 'application/xml');
         const rels = relsDoc.getElementsByTagName('Relationship');
         let layoutPath = null;
         for (const rel of rels) {
-          const type = rel.getAttribute('Type') || '';
-          if (type.endsWith('/slideLayout')) {
-            const target = rel.getAttribute('Target');
-            layoutPath = 'ppt/' + target.replace(/^\.\.\//, '');
+          if ((rel.getAttribute('Type') || '').endsWith('/slideLayout')) {
+            layoutPath = 'ppt/' + rel.getAttribute('Target').replace(/^\.\.\//, '');
             break;
           }
         }
@@ -408,7 +500,6 @@
         return phMap;
       }
 
-      // 4. Find and Sort Slides
       const slidePaths = [];
       zip.forEach((path) => {
         if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
@@ -424,13 +515,11 @@
         return;
       }
 
-      // 5. Render Every Slide
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
         const slideXmlStr = await zip.file(path).async('text');
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
-        // Extract Relationships (Images & Layouts)
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
         const imgMap = {};
         let layoutPhMap = {};
@@ -448,7 +537,9 @@
               const cleanPath = 'ppt/' + target.replace(/^\.\.\//, '');
               if (zip.file(cleanPath)) {
                 const blob = await zip.file(cleanPath).async('blob');
-                imgMap[rId] = URL.createObjectURL(blob);
+                const objUrl = URL.createObjectURL(blob);
+                activeObjectUrls.push(objUrl); // Track for cleanup
+                imgMap[rId] = objUrl;
               }
             }
           }
@@ -472,12 +563,11 @@
           if (bgColor) stage.style.backgroundColor = bgColor;
         }
 
-        // Recursive Shape & Diagram Processor
         function processElements(parentXml, targetContainer, baseW, baseH) {
           for (const node of parentXml.children) {
             const tag = node.tagName;
 
-            // Group Shapes (Diagrams, Mind Maps, Flowcharts)
+            // Group Shapes
             if (tag === 'p:grpSp') {
               const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
               if (grpXfrm) {
@@ -527,7 +617,6 @@
                 }
               }
 
-              // Fallback to Layout Template Placeholder if xfrm is missing
               if (!pos) {
                 const ph = node.getElementsByTagName('p:ph')[0];
                 if (ph) {
@@ -554,27 +643,20 @@
               shapeDiv.style.width = `${(pos.cx / baseW) * 100}%`;
               shapeDiv.style.minHeight = `${(pos.cy / baseH) * 100}%`;
 
-              // Fill and Borders (Direct or via Theme Style)
               const solidFill = spPr?.getElementsByTagName('a:solidFill')[0];
               let bgClr = resolveColor(solidFill);
-
               const ln = spPr?.getElementsByTagName('a:ln')[0];
               let borderClr = ln ? resolveColor(ln.getElementsByTagName('a:solidFill')[0] || ln) : null;
 
-              // Read Theme Style References (<p:style>) for Colored Diagram Boxes
               const style = node.getElementsByTagName('p:style')[0];
               if (style) {
                 if (!bgClr) {
                   const fillRef = style.getElementsByTagName('a:fillRef')[0];
-                  if (fillRef && parseInt(fillRef.getAttribute('idx'), 10) > 0) {
-                    bgClr = resolveColor(fillRef);
-                  }
+                  if (fillRef && parseInt(fillRef.getAttribute('idx'), 10) > 0) bgClr = resolveColor(fillRef);
                 }
                 if (!borderClr) {
                   const lnRef = style.getElementsByTagName('a:lnRef')[0];
-                  if (lnRef && parseInt(lnRef.getAttribute('idx'), 10) > 0) {
-                    borderClr = resolveColor(lnRef);
-                  }
+                  if (lnRef && parseInt(lnRef.getAttribute('idx'), 10) > 0) borderClr = resolveColor(lnRef);
                 }
               }
 
@@ -588,7 +670,6 @@
                 if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
               }
 
-              // Extract Text Paragraphs & Formatted Runs
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
                 const paras = txBody.getElementsByTagName('a:p');
@@ -655,7 +736,7 @@
               targetContainer.appendChild(shapeDiv);
             }
 
-            // Connector Lines (Diagram / Mind Map Links)
+            // Connectors
             if (tag === 'p:cxnSp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -685,7 +766,7 @@
               }
             }
 
-            // Pictures & Figures
+            // Pictures
             if (tag === 'p:pic') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -759,9 +840,7 @@
         }
 
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
-        if (spTree) {
-          processElements(spTree, stage, sldW, sldH);
-        }
+        if (spTree) processElements(spTree, stage, sldW, sldH);
 
         card.appendChild(stage);
         viewer.appendChild(card);
@@ -769,19 +848,20 @@
     }
 
     // ---------------------------------------------------------
-    // MASTER DOCUMENT ROUTER
+    // MASTER ROUTER
     // ---------------------------------------------------------
     async function renderFile(file) {
       if (!file) return;
 
+      cleanupMemory(); // Clear old Object URLs to prevent RAM bloat
       scale = 1.0;
       zoomWrapper.style.transform = 'scale(1)';
 
       const fileName = file.name || 'document.docx';
       updateTitle(fileName);
+      showLoading(fileName);
 
       const ext = fileName.split('.').pop().toLowerCase();
-      viewer.innerHTML = `<p style="color: #4f46e5; text-align: center; margin-top: 60px;">Opening ${fileName}...</p>`;
 
       try {
         if (ext === 'docx') {
@@ -792,11 +872,7 @@
             breakPages: true
           });
         } else if (ext === 'xlsx' || ext === 'xls') {
-          const data = await file.arrayBuffer();
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.SheetNames[0];
-          const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
-          viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
+          await renderExcel(file);
         } else if (ext === 'pptx') {
           await renderPptx(file);
         } else {
