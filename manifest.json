@@ -7,35 +7,10 @@
   "theme_color": "#0f111a",
   "icons": [
     {
-      "src": "https://raw.githubusercontent.com/feathericons/feather/master/icons/file-text.svg",
+      "src": "/icon.svg",
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }
-  ],
-  "share_target": {
-    "action": "/share-target",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "files": [
-        {
-          "name": "shared_file",
-          "accept": [
-            ".docx",
-            ".xlsx",
-            ".xls",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/msword",
-            "application/vnd.ms-excel",
-            "application/octet-stream",
-            "application/zip"
-          ]
-        }
-      ]
-    }
-  }
+  ]
 }
