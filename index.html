@@ -109,7 +109,7 @@
       display: block;
     }
 
-    /* SPINNER */
+    /* LOADING SPINNER */
     .loader-box {
       display: flex;
       flex-direction: column;
@@ -277,7 +277,6 @@
     const zoomWrapper = document.getElementById('zoom-wrapper');
     const docTitle = document.getElementById('doc-title');
 
-    // Memory tracker to release Blob URLs on each new file load
     let activeObjectUrls = [];
 
     function cleanupMemory() {
@@ -300,7 +299,20 @@
       `;
     }
 
-    // Register Service Worker for offline capability
+    // Helper: calculate brightness to guarantee readable text contrast
+    function isDarkColor(hex) {
+      if (!hex || !hex.startsWith('#')) return false;
+      let c = hex.substring(1);
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const rgb = parseInt(c, 16);
+      if (isNaN(rgb)) return false;
+      const r = (rgb >> 16) & 0xff;
+      const g = (rgb >> 8) & 0xff;
+      const b = (rgb >> 0) & 0xff;
+      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
+      return luma < 135;
+    }
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js');
     }
@@ -377,11 +389,15 @@
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Spreadsheet is empty.</p>';
+        return;
+      }
+
       viewer.innerHTML = '';
       const excelBox = document.createElement('div');
       excelBox.className = 'excel-container';
 
-      // Sheet Tabs Bar
       const tabsBar = document.createElement('div');
       tabsBar.className = 'sheet-tabs';
 
@@ -400,16 +416,14 @@
         tabsBar.appendChild(btn);
       });
 
-      // Render the first sheet initially
       tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
-
       excelBox.appendChild(tabsBar);
       excelBox.appendChild(tableContent);
       viewer.appendChild(excelBox);
     }
 
     // ---------------------------------------------------------
-    // POWERPOINT (PPTX) ENGINE WITH AUTO-MEMORY CLEANUP
+    // POWERPOINT (PPTX) ENGINE WITH AUTO-CONTRAST
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
@@ -538,7 +552,7 @@
               if (zip.file(cleanPath)) {
                 const blob = await zip.file(cleanPath).async('blob');
                 const objUrl = URL.createObjectURL(blob);
-                activeObjectUrls.push(objUrl); // Track for cleanup
+                activeObjectUrls.push(objUrl);
                 imgMap[rId] = objUrl;
               }
             }
@@ -557,10 +571,14 @@
         stage.className = 'ppt-stage';
         stage.style.aspectRatio = `${sldW} / ${sldH}`;
 
+        let slideBgColor = '#ffffff';
         const bg = xmlDoc.getElementsByTagName('p:bg')[0];
         if (bg) {
-          const bgColor = resolveColor(bg);
-          if (bgColor) stage.style.backgroundColor = bgColor;
+          const c = resolveColor(bg);
+          if (c) {
+            slideBgColor = c;
+            stage.style.backgroundColor = c;
+          }
         }
 
         function processElements(parentXml, targetContainer, baseW, baseH) {
@@ -598,7 +616,7 @@
               continue;
             }
 
-            // Normal Shapes & Titles
+            // Normal Shapes & Text Blocks
             if (tag === 'p:sp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -670,6 +688,10 @@
                 if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
               }
 
+              // Contrast resolution: White text if background is dark, dark text if light
+              const effectiveBg = bgClr || slideBgColor;
+              const autoTextColor = isDarkColor(effectiveBg) ? '#ffffff' : '#111827';
+
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
                 const paras = txBody.getElementsByTagName('a:p');
@@ -718,9 +740,10 @@
                         }
 
                         const txtClr = resolveColor(rPr);
-                        if (txtClr) span.style.color = txtClr;
+                        span.style.color = txtClr || autoTextColor;
                       } else {
                         span.style.fontSize = 'clamp(10px, 1.8cqw, 20px)';
+                        span.style.color = autoTextColor;
                       }
 
                       pDiv.appendChild(span);
@@ -772,7 +795,9 @@
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
               const blip = node.getElementsByTagName('a:blip')[0];
               if (xfrm && blip) {
-                const rId = blip.getAttribute('r:embed');
+                const rId = blip.getAttribute('r:embed') || 
+                            blip.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed') ||
+                            blip.getAttribute('embed');
                 const off = xfrm.getElementsByTagName('a:off')[0];
                 const ext = xfrm.getElementsByTagName('a:ext')[0];
 
@@ -848,12 +873,12 @@
     }
 
     // ---------------------------------------------------------
-    // MASTER ROUTER
+    // MASTER DOCUMENT ROUTER
     // ---------------------------------------------------------
     async function renderFile(file) {
       if (!file) return;
 
-      cleanupMemory(); // Clear old Object URLs to prevent RAM bloat
+      cleanupMemory();
       scale = 1.0;
       zoomWrapper.style.transform = 'scale(1)';
 
@@ -880,6 +905,8 @@
         }
       } catch (err) {
         viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 60px;">Error rendering: ${err.message}</p>`;
+      } finally {
+        fileInput.value = ''; // FIX: Allows re-selecting the exact same document
       }
     }
 
