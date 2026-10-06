@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Doc Viewer</title>
+  
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f111a">
 
@@ -19,70 +21,117 @@
       padding: 0; 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
     }
+    
     body { 
       background-color: #0f111a; 
       color: #fff; 
       display: flex; 
       flex-direction: column; 
-      min-height: 100vh;
+      height: 100vh;
       width: 100vw;
-      overflow-x: hidden;
+      overflow: hidden;
     }
+
+    /* HEADER */
     header { 
-      padding: 12px; 
+      padding: 10px 15px; 
       background: #1a1c29; 
-      text-align: center; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       border-bottom: 1px solid #2d3142; 
+      flex-shrink: 0;
+    }
+    header img {
+      width: 24px;
+      height: 24px;
     }
     h1 { font-size: 1rem; font-weight: 600; color: #82aaff; }
-    .upload-bar { padding: 12px; text-align: center; }
+
+    /* UPLOAD BAR */
+    .upload-bar { 
+      padding: 10px; 
+      text-align: center; 
+      background: #12141f;
+      flex-shrink: 0;
+    }
     input[type="file"] { display: none; }
     .btn { 
       background: #4f46e5; 
       color: white; 
-      padding: 10px 18px; 
+      padding: 8px 18px; 
       border-radius: 8px; 
       cursor: pointer; 
-      font-size: 0.9rem; 
+      font-size: 0.85rem; 
       display: inline-block; 
       font-weight: 500;
     }
+
+    /* SCROLL CONTAINER (Left-Right & Top-Bottom) */
     #viewer-container {
       flex: 1;
       width: 100%;
-      padding: 8px;
-      overflow-y: auto;
-      overflow-x: hidden;
+      height: 100%;
+      overflow-x: auto !important;
+      overflow-y: auto !important;
+      -webkit-overflow-scrolling: touch;
+      background: #0f111a;
+      padding: 10px;
+      touch-action: pan-x pan-y; /* Keeps 1-finger glide completely smooth */
     }
+
+    /* ZOOM WRAPPER */
+    #zoom-wrapper {
+      display: inline-block;
+      transform-origin: 0 0;
+      min-width: 100%;
+    }
+
     #viewer { 
-      width: 100%; 
       background: #ffffff; 
       color: #000; 
       border-radius: 6px; 
-      padding: 12px;
-      min-height: 75vh;
+      padding: 15px;
+      min-height: 80vh;
+      min-width: 100%;
+      display: inline-block;
+    }
+
+    /* WORD DOCUMENT STYLING */
+    .docx-wrapper { 
+      background: transparent !important; 
+      padding: 0 !important; 
+    }
+    .docx-wrapper > section.docx { 
+      min-width: 650px !important; /* Preserves desktop format so nothing gets squished */
+      padding: 20px !important; 
+      margin: 0 auto 15px auto !important; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    }
+
+    /* EXCEL TABLE STYLING */
+    .table-wrapper {
+      width: 100%;
       overflow-x: auto;
     }
-    .docx-wrapper { background: transparent !important; padding: 0 !important; }
-    .docx-wrapper > section.docx { 
-      width: 100% !important; 
-      max-width: 100% !important; 
-      min-height: auto !important; 
-      padding: 12px !important; 
-      margin: 0 0 10px 0 !important; 
-      box-shadow: none !important; 
-      box-sizing: border-box !important;
+    table { 
+      border-collapse: collapse; 
+      white-space: nowrap; 
     }
-    .docx-wrapper img { max-width: 100% !important; height: auto !important; }
-    .table-wrapper { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    table { border-collapse: collapse; width: 100%; white-space: nowrap; }
-    th, td { border: 1px solid #d1d5db; padding: 6px 10px; font-size: 0.8rem; text-align: left; }
+    th, td { 
+      border: 1px solid #d1d5db; 
+      padding: 6px 12px; 
+      font-size: 0.85rem; 
+      text-align: left; 
+    }
     th { background: #f3f4f6; font-weight: 600; }
   </style>
 </head>
 <body>
 
   <header>
+    <img src="icon.svg" alt="App Logo">
     <h1>Personal Document Reader</h1>
   </header>
 
@@ -92,111 +141,108 @@
   </div>
 
   <div id="viewer-container">
-    <div id="viewer">
-      <p style="color: #6b7280; text-align: center; margin-top: 40px; font-size: 0.9rem;">
-        Choose a file or share one from WhatsApp.
-      </p>
+    <div id="zoom-wrapper">
+      <div id="viewer">
+        <p style="color: #6b7280; text-align: center; margin-top: 50px; font-size: 0.9rem;">
+          Select a document above to read it.
+        </p>
+      </div>
     </div>
   </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
+    const container = document.getElementById('viewer-container');
+    const zoomWrapper = document.getElementById('zoom-wrapper');
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
+    // ---------------------------------------------------------
+    // TOUCH PINCH-TO-ZOOM ENGINE
+    // ---------------------------------------------------------
+    let scale = 1.0;
+    let initialDist = 0;
+    let initialScale = 1.0;
+    let lastTap = 0;
+
+    // Helper: calculate distance between two fingers
+    function getDistance(touches) {
+      const dx = touches[0].clientX - touches[1].clientX;
+      const dy = touches[0].clientY - touches[1].clientY;
+      return Math.hypot(dx, dy);
     }
 
-    // Helper: Read the byte buffer back from IndexedDB
-    function getSharedData() {
-      return new Promise((resolve, reject) => {
-        const req = indexedDB.open('ReaderDB', 2);
-        req.onupgradeneeded = (e) => {
-          const db = e.target.result;
-          if (!db.objectStoreNames.contains('shared')) {
-            db.createObjectStore('shared');
-          }
-        };
-        req.onsuccess = (e) => {
-          const db = e.target.result;
-          const tx = db.transaction('shared', 'readwrite');
-          const store = tx.objectStore('shared');
-          const getReq = store.get('incoming_file');
-          getReq.onsuccess = () => {
-            const data = getReq.result;
-            store.delete('incoming_file');
-            db.close();
-            resolve(data);
-          };
-          getReq.onerror = () => reject(getReq.error);
-        };
-        req.onerror = () => reject(req.error);
-      });
-    }
+    // Touch Start
+    container.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 2) {
+        // Two fingers detected: start pinch calculation
+        initialDist = getDistance(e.touches);
+        initialScale = scale;
+      }
+    }, { passive: true });
 
-    // Document renderer
+    // Touch Move
+    container.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialDist > 0) {
+        e.preventDefault(); // Stop screen jitter while pinching
+
+        const currentDist = getDistance(e.touches);
+        const factor = currentDist / initialDist;
+        const newScale = initialScale * factor;
+
+        // Limit zoom between 0.5x and 3.0x
+        scale = Math.min(Math.max(newScale, 0.5), 3.0);
+        zoomWrapper.style.transform = `scale(${scale})`;
+      }
+    }, { passive: false });
+
+    // Touch End
+    container.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) {
+        initialDist = 0;
+      }
+
+      // Double-Tap to Reset Zoom (within 300ms)
+      const now = Date.now();
+      if (now - lastTap < 300 && e.touches.length === 0) {
+        scale = 1.0;
+        zoomWrapper.style.transform = 'scale(1)';
+      }
+      lastTap = now;
+    });
+
+    // ---------------------------------------------------------
+    // FILE RENDERING ENGINE
+    // ---------------------------------------------------------
     async function renderFile(file) {
       if (!file) return;
-      const fileName = file.name || 'document.docx';
-      const ext = fileName.split('.').pop().toLowerCase();
-      viewer.innerHTML = `<p style="color: #4f46e5; text-align: center; margin-top: 40px;">Opening ${fileName}...</p>`;
+
+      // Reset zoom back to normal for new file
+      scale = 1.0;
+      zoomWrapper.style.transform = 'scale(1)';
+
+      const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
+      viewer.innerHTML = '<p style="color: #4f46e5; text-align: center; margin-top: 50px;">Opening document...</p>';
 
       try {
-        if (ext === 'docx' || (file.type && file.type.includes('word'))) {
+        if (ext === 'docx') {
           viewer.innerHTML = '';
           await docx.renderAsync(file, viewer, null, {
             inWrapper: true,
-            ignoreWidth: true,
-            breakPages: false
+            ignoreWidth: false,
+            breakPages: true
           });
-        } else if (ext === 'xlsx' || ext === 'xls' || (file.type && file.type.includes('sheet'))) {
+        } else if (ext === 'xlsx' || ext === 'xls') {
           const data = await file.arrayBuffer();
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.SheetNames[0];
           const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
           viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
         } else {
-          // Fallback auto-detection
-          try {
-            viewer.innerHTML = '';
-            await docx.renderAsync(file, viewer, null, { inWrapper: true, ignoreWidth: true, breakPages: false });
-          } catch(err) {
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data, { type: 'array' });
-            const firstSheet = workbook.SheetNames[0];
-            const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
-            viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
-          }
+          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Unsupported file format.</p>';
         }
       } catch (err) {
-        viewer.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;"><b>Error rendering file:</b><br>${err.message}</p>`;
+        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 50px;">Error rendering: ${err.message}</p>`;
       }
-    }
-
-    // Initialize share detection on app start
-    async function initialize() {
-      const urlParams = new URLSearchParams(window.location.search);
-      
-      if (urlParams.get('shared') === '1') {
-        const sharedData = await getSharedData();
-        if (sharedData && sharedData.buffer) {
-          const recoveredFile = new File([sharedData.buffer], sharedData.name, { type: sharedData.type });
-          await renderFile(recoveredFile);
-        } else {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 40px;">File buffer was empty.</p>';
-        }
-      } else if (urlParams.get('shared') === '0') {
-        const debug = urlParams.get('debug') || 'None';
-        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 40px; padding: 15px;">No file received.<br><br><small style="color: #888;">Debug: ${decodeURIComponent(debug)}</small></p>`;
-      } else if (urlParams.get('error')) {
-        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 40px;">Error: ${urlParams.get('error')}</p>`;
-      }
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initialize);
-    } else {
-      initialize();
     }
 
     fileInput.addEventListener('change', (e) => {
