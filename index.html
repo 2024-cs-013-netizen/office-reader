@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doc Viewer</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e1e2e">
+
+  <!-- Core Libraries from CDN -->
+  <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
+  <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f111a; color: #fff; display: flex; flex-direction: column; min-height: 100vh; }
+    header { padding: 15px; background: #1a1c29; text-align: center; border-bottom: 1px solid #2d3142; }
+    h1 { font-size: 1.1rem; font-weight: 600; color: #82aaff; }
+    .upload-bar { padding: 15px; text-align: center; }
+    input[type="file"] { display: none; }
+    .btn { background: #4f46e5; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 0.95rem; display: inline-block; }
+    #viewer { flex: 1; padding: 15px; background: #ffffff; color: #000; margin: 10px; border-radius: 8px; overflow: auto; min-height: 70vh; }
+    table { border-collapse: collapse; width: 100%; }
+    th, td { border: 1px solid #ccc; padding: 6px 10px; font-size: 0.85rem; text-align: left; }
+    th { background: #f0f0f0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Personal Document Reader</h1>
+  </header>
+
+  <div class="upload-bar">
+    <label for="fileInput" class="btn">Choose File (.docx, .xlsx)</label>
+    <input type="file" id="fileInput" accept=".docx, .xlsx, .xls">
+  </div>
+
+  <div id="viewer">
+    <p style="color: #666; text-align: center; margin-top: 50px;">Select a document above to view it instantly.</p>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const viewer = document.getElementById('viewer');
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const ext = file.name.split('.').pop().toLowerCase();
+      viewer.innerHTML = '<p style="color: #666; text-align: center; margin-top: 50px;">Loading document...</p>';
+
+      try {
+        if (ext === 'docx') {
+          viewer.innerHTML = '';
+          await docx.renderAsync(file, viewer);
+        } else if (ext === 'xlsx' || ext === 'xls') {
+          const data = await file.arrayBuffer();
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheet = workbook.SheetNames[0];
+          const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
+          viewer.innerHTML = html;
+        } else {
+          viewer.innerHTML = '<p style="color: red; text-align: center;">Format not supported yet.</p>';
+        }
+      } catch (err) {
+        viewer.innerHTML = '<p style="color: red; text-align: center;">Failed to render document: ' + err.message + '</p>';
+      }
+    });
+  </script>
+</body>
+</html>
