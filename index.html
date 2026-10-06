@@ -59,7 +59,7 @@
       background: #ffffff; 
       color: #000; 
       border-radius: 6px; 
-      padding: 10px;
+      padding: 12px;
       min-height: 75vh;
       overflow-x: auto;
     }
@@ -103,53 +103,98 @@
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
 
-    // 1. Register the Service Worker
+    // Register Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(() => {
-        console.log('Service Worker Registered');
+      navigator.serviceWorker.register('/sw.js');
+    }
+
+    // Helper: Read shared file from IndexedDB
+    function getSharedFile() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open('ReaderDB', 1);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains('shared')) {
+            db.createObjectStore('shared');
+          }
+        };
+        req.onsuccess = (e) => {
+          const db = e.target.result;
+          const tx = db.transaction('shared', 'readwrite');
+          const store = tx.objectStore('shared');
+          const getReq = store.get('incoming_file');
+          getReq.onsuccess = () => {
+            const file = getReq.result;
+            store.delete('incoming_file'); // Clear cache once read
+            db.close();
+            resolve(file);
+          };
+          getReq.onerror = () => reject(getReq.error);
+        };
+        req.onerror = () => reject(req.error);
       });
     }
 
-    // 2. Render Engine
+    // Core file rendering function
     async function renderFile(file) {
-      const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
-      viewer.innerHTML = '<p style="color: #6b7280; text-align: center; margin-top: 40px;">Rendering file...</p>';
+      if (!file) return;
+      const fileName = file.name || 'Document';
+      const ext = fileName.split('.').pop().toLowerCase();
+      viewer.innerHTML = `<p style="color: #4f46e5; text-align: center; margin-top: 40px;">Opening ${fileName}...</p>`;
 
       try {
-        if (ext === 'docx' || file.type.includes('word')) {
+        if (ext === 'docx' || (file.type && file.type.includes('word'))) {
           viewer.innerHTML = '';
           await docx.renderAsync(file, viewer, null, {
             inWrapper: true,
             ignoreWidth: true,
             breakPages: false
           });
-        } else {
+        } else if (ext === 'xlsx' || ext === 'xls' || (file.type && file.type.includes('sheet'))) {
           const data = await file.arrayBuffer();
           const workbook = XLSX.read(data, { type: 'array' });
           const firstSheet = workbook.SheetNames[0];
           const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
           viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
+        } else {
+          // Fallback check
+          try {
+            viewer.innerHTML = '';
+            await docx.renderAsync(file, viewer, null, { inWrapper: true, ignoreWidth: true, breakPages: false });
+          } catch(err) {
+            const data = await file.arrayBuffer();
+            const workbook = XLSX.read(data, { type: 'array' });
+            const firstSheet = workbook.SheetNames[0];
+            const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
+            viewer.innerHTML = `<div class="table-wrapper">${html}</div>`;
+          }
         }
       } catch (err) {
-        viewer.innerHTML = '<p style="color: #ef4444; text-align: center;">Error rendering: ' + err.message + '</p>';
+        viewer.innerHTML = `<p style="color: #ef4444; padding: 20px; text-align: center;"><b>Error rendering file:</b><br>${err.message}</p>`;
       }
     }
 
-    // 3. Check if opened via WhatsApp Share
-    window.addEventListener('DOMContentLoaded', async () => {
+    // Run automatically when the app launches
+    async function initialize() {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('shared') === 'true') {
-        const cache = await caches.open('shared-files');
-        const response = await cache.match('incoming-file');
-        if (response) {
-          const blob = await response.blob();
-          await renderFile(blob);
-          await cache.delete('incoming-file');
+      if (urlParams.get('shared') === '1') {
+        const file = await getSharedFile();
+        if (file) {
+          await renderFile(file);
+        } else {
+          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 40px;">No file found in temporary storage.</p>';
         }
+      } else if (urlParams.get('error')) {
+        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 40px;">Failed to receive file: ${urlParams.get('error')}</p>`;
       }
-    });
+    }
 
-    // 4. Manual File Picker
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initialize);
+    } else {
+      initialize();
+    }
+
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
       if (file) renderFile(file);
