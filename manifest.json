@@ -1,16 +1,36 @@
 {
   "name": "Office Reader",
   "short_name": "Reader",
+  "description": "Fast, offline-ready reader for Word, Excel, and PowerPoint files.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "any",
   "background_color": "#0f111a",
   "theme_color": "#0f111a",
   "icons": [
     {
       "src": "/icon.svg",
-      "sizes": "any 512x512",
+      "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"]
+      }
     }
   ]
 }
