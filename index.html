@@ -20,6 +20,7 @@
       margin: 0; 
       padding: 0; 
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+      -webkit-tap-highlight-color: transparent;
     }
     
     body { 
@@ -28,8 +29,10 @@
       display: flex; 
       flex-direction: column; 
       height: 100vh;
+      height: 100dvh;
       width: 100vw;
       overflow: hidden;
+      user-select: none;
     }
 
     /* HEADER */
@@ -38,13 +41,21 @@
       background: #1a1c29; 
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
       border-bottom: 1px solid #2d3142; 
       flex-shrink: 0;
     }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      flex: 1;
+    }
     header img {
-      width: 22px;
-      height: 22px;
+      width: 24px;
+      height: 24px;
       flex-shrink: 0;
     }
     #doc-title { 
@@ -54,13 +65,25 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      max-width: 82vw;
+    }
+    #doc-badge {
+      font-size: 0.7rem;
+      background: #282c3f;
+      color: #cbd5e1;
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      display: none;
+      flex-shrink: 0;
     }
 
     /* UPLOAD BAR */
     .upload-bar { 
-      padding: 10px; 
-      text-align: center; 
+      padding: 10px 14px; 
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
       background: #12141f;
       flex-shrink: 0;
       border-bottom: 1px solid #1e2130;
@@ -69,15 +92,21 @@
     .btn { 
       background: #4f46e5; 
       color: white; 
-      padding: 8px 18px; 
+      padding: 9px 20px; 
       border-radius: 8px; 
       cursor: pointer; 
       font-size: 0.85rem; 
-      display: inline-block; 
-      font-weight: 500;
-      transition: background 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+      transition: transform 0.12s, background 0.2s;
     }
-    .btn:active { background: #4338ca; }
+    .btn:active { 
+      background: #4338ca; 
+      transform: scale(0.97);
+    }
 
     /* SCROLL CONTAINER */
     #viewer-container {
@@ -88,16 +117,28 @@
       overflow-y: auto !important;
       -webkit-overflow-scrolling: touch;
       background: #0f111a;
-      padding: 12px 12px 24px 12px;
+      padding: 12px 12px 64px 12px;
       touch-action: pan-x pan-y;
       position: relative;
     }
+    #viewer-container.drag-over {
+      outline: 2px dashed #82aaff;
+      outline-offset: -8px;
+      background: #141829;
+    }
+
+    /* SIZER BOX PREVENTS GHOST SCROLLBARS WHEN SCALING */
+    #zoom-sizer {
+      position: relative;
+      overflow: hidden;
+      min-width: 100%;
+    }
 
     #zoom-wrapper {
-      display: block;
+      display: inline-block;
       transform-origin: 0 0;
-      width: max-content;
       min-width: 100%;
+      user-select: text;
     }
 
     #viewer { 
@@ -107,6 +148,63 @@
       margin: 0;
       width: 100%;
       display: block;
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      color: #94a3b8;
+      text-align: center;
+      margin: 60px auto 0 auto;
+      max-width: 320px;
+      padding: 24px 16px;
+      border: 1px dashed #2d3142;
+      border-radius: 12px;
+      background: #141724;
+    }
+    .empty-state h2 {
+      font-size: 1rem;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+    }
+    .empty-state p {
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #64748b;
+    }
+
+    /* FLOATING ZOOM BAR */
+    #zoom-hud {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: rgba(26, 28, 41, 0.92);
+      backdrop-filter: blur(8px);
+      border: 1px solid #2d3142;
+      border-radius: 10px;
+      display: none;
+      align-items: center;
+      padding: 4px;
+      gap: 4px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      z-index: 50;
+    }
+    .hud-btn {
+      background: #25283a;
+      color: #e2e8f0;
+      border: none;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .hud-btn:active { background: #4f46e5; color: #fff; }
+    #zoom-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #82aaff;
+      min-width: 44px;
+      text-align: center;
     }
 
     /* LOADING SPINNER */
@@ -127,7 +225,7 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; }
+    .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; text-align: center; }
 
     /* WORD STYLING */
     .docx-wrapper { 
@@ -137,21 +235,22 @@
       display: block !important;
     }
     .docx-wrapper > section.docx { 
-      min-width: 580px !important; 
-      padding: 24px 20px !important; 
+      min-width: 650px !important; 
+      padding: 28px 24px !important; 
       margin: 0 0 16px 0 !important; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
       background: #ffffff !important;
       border-radius: 6px;
+      overflow-x: auto;
     }
 
-    /* EXCEL STYLING WITH TABS */
+    /* EXCEL STYLING WITH STICKY HEADERS & TABS */
     .excel-container {
       background: #ffffff;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.25);
       overflow: hidden;
-      min-width: 580px;
+      min-width: max-content;
     }
     .sheet-tabs {
       display: flex;
@@ -160,6 +259,8 @@
       background: #1f2333;
       overflow-x: auto;
       border-bottom: 1px solid #2e344d;
+      position: sticky;
+      left: 0;
     }
     .sheet-tab {
       background: #2a2f45;
@@ -190,6 +291,7 @@
       padding: 6px 12px; 
       font-size: 0.85rem; 
       text-align: left; 
+      color: #1e293b;
     }
     th { background: #f1f5f9; font-weight: 600; }
 
@@ -199,9 +301,7 @@
       border-radius: 10px;
       margin: 0 0 24px 0;
       box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-      width: 100%;
-      min-width: 620px;
-      max-width: 860px;
+      width: 760px;
       border: 1px solid #282c3f;
     }
     .ppt-slide-header {
@@ -246,13 +346,34 @@
       box-sizing: border-box;
       overflow: auto;
     }
+    .ppt-smartart-fallback {
+      position: absolute;
+      inset: 18% 6% 8% 6%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+      align-content: start;
+    }
+    .ppt-smartart-node {
+      background: #eff6ff;
+      border: 1.5px solid #3b82f6;
+      color: #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
+    }
   </style>
 </head>
 <body>
 
   <header>
-    <img src="icon.svg" alt="App Logo">
-    <h1 id="doc-title">Personal Document Reader</h1>
+    <div class="header-left">
+      <img src="icon.svg" alt="App Logo">
+      <h1 id="doc-title">Personal Document Reader</h1>
+    </div>
+    <span id="doc-badge"></span>
   </header>
 
   <div class="upload-bar">
@@ -261,21 +382,36 @@
   </div>
 
   <div id="viewer-container">
-    <div id="zoom-wrapper">
-      <div id="viewer">
-        <p style="color: #6b7280; text-align: center; margin-top: 60px; font-size: 0.9rem;">
-          Select a Word, Excel, or PowerPoint document above.
-        </p>
+    <div id="zoom-sizer">
+      <div id="zoom-wrapper">
+        <div id="viewer">
+          <div class="empty-state">
+            <h2>Ready to Read</h2>
+            <p>Tap the button above to open any Word (.docx), Excel (.xlsx), or PowerPoint (.pptx) file offline.</p>
+          </div>
+        </div>
       </div>
     </div>
+  </div>
+
+  <!-- Floating Zoom Controls -->
+  <div id="zoom-hud">
+    <button class="hud-btn" id="btn-fit" title="Fit to Screen">Fit</button>
+    <button class="hud-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+    <span id="zoom-label">100%</span>
+    <button class="hud-btn" id="btn-zoom-in" title="Zoom In">+</button>
   </div>
 
   <script>
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
     const container = document.getElementById('viewer-container');
+    const zoomSizer = document.getElementById('zoom-sizer');
     const zoomWrapper = document.getElementById('zoom-wrapper');
     const docTitle = document.getElementById('doc-title');
+    const docBadge = document.getElementById('doc-badge');
+    const zoomHud = document.getElementById('zoom-hud');
+    const zoomLabel = document.getElementById('zoom-label');
 
     let activeObjectUrls = [];
 
@@ -284,22 +420,41 @@
       activeObjectUrls = [];
     }
 
-    function updateTitle(name) {
-      if (!name) return;
-      docTitle.textContent = name;
-      document.title = name;
+    function updateTitle(name, badgeText = '') {
+      if (name) {
+        docTitle.textContent = name;
+        document.title = name;
+      }
+      if (badgeText) {
+        docBadge.textContent = badgeText;
+        docBadge.style.display = 'inline-block';
+      } else {
+        docBadge.style.display = 'none';
+      }
     }
 
     function showLoading(fileName) {
-      viewer.innerHTML = `
-        <div class="loader-box">
-          <div class="spinner"></div>
-          <div class="loader-text">Loading ${fileName}...</div>
-        </div>
-      `;
+      viewer.innerHTML = '';
+      const box = document.createElement('div');
+      box.className = 'loader-box';
+      const spin = document.createElement('div');
+      spin.className = 'spinner';
+      const txt = document.createElement('div');
+      txt.className = 'loader-text';
+      txt.textContent = `Opening ${fileName}...`;
+      box.appendChild(spin);
+      box.appendChild(txt);
+      viewer.appendChild(box);
     }
 
-    // Helper: calculate brightness to guarantee readable text contrast
+    function showError(msg) {
+      viewer.innerHTML = '';
+      const p = document.createElement('p');
+      p.style.cssText = 'color: #ef4444; text-align: center; margin-top: 60px; padding: 0 20px; font-size: 0.9rem;';
+      p.textContent = msg;
+      viewer.appendChild(p);
+    }
+
     function isDarkColor(hex) {
       if (!hex || !hex.startsWith('#')) return false;
       let c = hex.substring(1);
@@ -309,8 +464,7 @@
       const r = (rgb >> 16) & 0xff;
       const g = (rgb >> 8) & 0xff;
       const b = (rgb >> 0) & 0xff;
-      const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-      return luma < 135;
+      return (0.299 * r + 0.587 * g + 0.114 * b) < 138;
     }
 
     if ('serviceWorker' in navigator) {
@@ -318,14 +472,54 @@
     }
 
     // ---------------------------------------------------------
-    // PERSISTENT TOUCH PINCH-TO-ZOOM ENGINE
+    // TRUE-LAYOUT PERSISTENT PINCH-TO-ZOOM & AUTO-FIT ENGINE
     // ---------------------------------------------------------
     let scale = 1.0;
+    let fitScale = 1.0;
     let initialDist = 0;
     let initialScale = 1.0;
     let isPinching = false;
     let touchMoved = false;
     let lastTap = 0;
+
+    function applyZoom(newScale) {
+      scale = Math.min(Math.max(newScale, 0.35), 3.5);
+      zoomWrapper.style.transform = `scale(${scale})`;
+      zoomLabel.textContent = `${Math.round(scale * 100)}%`;
+
+      // Adjust physical layout box so scrollbars match the visual zoom level
+      requestAnimationFrame(() => {
+        const naturalW = zoomWrapper.offsetWidth;
+        const naturalH = zoomWrapper.offsetHeight;
+        if (naturalW && naturalH) {
+          zoomSizer.style.width = `${Math.ceil(naturalW * scale)}px`;
+          zoomSizer.style.height = `${Math.ceil(naturalH * scale)}px`;
+        }
+      });
+    }
+
+    function fitDocumentToScreen() {
+      zoomSizer.style.width = 'auto';
+      zoomSizer.style.height = 'auto';
+      zoomWrapper.style.transform = 'scale(1)';
+
+      requestAnimationFrame(() => {
+        const availableW = container.clientWidth - 24;
+        const contentW = zoomWrapper.scrollWidth || zoomWrapper.offsetWidth;
+        if (contentW > availableW && availableW > 0) {
+          fitScale = Math.max(availableW / contentW, 0.4);
+        } else {
+          fitScale = 1.0;
+        }
+        applyZoom(fitScale);
+        container.scrollTo(0, 0);
+      });
+    }
+
+    document.getElementById('btn-fit').addEventListener('click', () => applyZoom(fitScale));
+    document.getElementById('btn-zoom-in').addEventListener('click', () => applyZoom(scale + 0.2));
+    document.getElementById('btn-zoom-out').addEventListener('click', () => applyZoom(scale - 0.2));
+    zoomLabel.addEventListener('click', () => applyZoom(1.0));
 
     function getDistance(touches) {
       const dx = touches[0].clientX - touches[1].clientX;
@@ -347,8 +541,7 @@
         e.preventDefault();
         const currentDist = getDistance(e.touches);
         const factor = currentDist / initialDist;
-        scale = Math.min(Math.max(initialScale * factor, 0.5), 3.5);
-        zoomWrapper.style.transform = `scale(${scale})`;
+        applyZoom(initialScale * factor);
       } else if (e.touches.length === 1) {
         touchMoved = true;
       }
@@ -370,11 +563,12 @@
         return;
       }
 
+      // Single-finger double-tap toggles between Fit-to-Screen and 100%
       if (e.touches.length === 0) {
         const now = Date.now();
         if (now - lastTap < 300) {
-          scale = 1.0;
-          zoomWrapper.style.transform = 'scale(1)';
+          const target = Math.abs(scale - fitScale) < 0.08 ? 1.0 : fitScale;
+          applyZoom(target);
           lastTap = 0;
         } else {
           lastTap = now;
@@ -390,11 +584,13 @@
       const workbook = XLSX.read(data, { type: 'array' });
       
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">Spreadsheet is empty.</p>';
+        showError('This spreadsheet is empty.');
         return;
       }
 
+      updateTitle(file.name, `${workbook.SheetNames.length} Sheet${workbook.SheetNames.length > 1 ? 's' : ''}`);
       viewer.innerHTML = '';
+
       const excelBox = document.createElement('div');
       excelBox.className = 'excel-container';
 
@@ -412,6 +608,7 @@
           excelBox.querySelectorAll('.sheet-tab').forEach((t) => t.classList.remove('active'));
           btn.classList.add('active');
           tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[sheetName]);
+          fitDocumentToScreen();
         });
         tabsBar.appendChild(btn);
       });
@@ -423,7 +620,7 @@
     }
 
     // ---------------------------------------------------------
-    // POWERPOINT (PPTX) ENGINE WITH AUTO-CONTRAST
+    // POWERPOINT (PPTX) ENGINE WITH GROUP OFFSET & SMARTART
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
@@ -445,13 +642,14 @@
       const themeColors = {
         'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
         'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
-        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c'
+        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c',
+        'tx1': '#111827', 'tx2': '#374151', 'bg1': '#ffffff', 'bg2': '#f3f4f6'
       };
 
       if (zip.file('ppt/theme/theme1.xml')) {
         const themeXml = await zip.file('ppt/theme/theme1.xml').async('text');
         const themeDoc = domParser.parseFromString(themeXml, 'application/xml');
-        for (const key of Object.keys(themeColors)) {
+        for (const key of ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6']) {
           const node = themeDoc.getElementsByTagName('a:' + key)[0];
           if (node) {
             const srgb = node.getElementsByTagName('a:srgbClr')[0];
@@ -460,6 +658,10 @@
             else if (sys && sys.getAttribute('lastClr')) themeColors[key] = '#' + sys.getAttribute('lastClr');
           }
         }
+        themeColors.tx1 = themeColors.dk1;
+        themeColors.tx2 = themeColors.dk2;
+        themeColors.bg1 = themeColors.lt1;
+        themeColors.bg2 = themeColors.lt2;
       }
 
       function resolveColor(elem) {
@@ -473,45 +675,63 @@
         return null;
       }
 
-      async function loadLayoutMap(relsXmlStr) {
+      async function loadSlideRelations(relsXmlStr) {
         const relsDoc = domParser.parseFromString(relsXmlStr, 'application/xml');
         const rels = relsDoc.getElementsByTagName('Relationship');
         let layoutPath = null;
+        const imgMap = {};
+        const diagramDrawings = [];
+        const diagramData = [];
+
         for (const rel of rels) {
-          if ((rel.getAttribute('Type') || '').endsWith('/slideLayout')) {
-            layoutPath = 'ppt/' + rel.getAttribute('Target').replace(/^\.\.\//, '');
-            break;
+          const rId = rel.getAttribute('Id');
+          const type = rel.getAttribute('Type') || '';
+          const target = rel.getAttribute('Target') || '';
+          const cleanPath = 'ppt/' + target.replace(/^(\.\.\/)+/, '');
+
+          if (type.endsWith('/slideLayout')) {
+            layoutPath = cleanPath;
+          } else if (target.includes('media/') && zip.file(cleanPath)) {
+            const blob = await zip.file(cleanPath).async('blob');
+            const objUrl = URL.createObjectURL(blob);
+            activeObjectUrls.push(objUrl);
+            imgMap[rId] = objUrl;
+          } else if (type.includes('diagramDrawing') && zip.file(cleanPath)) {
+            diagramDrawings.push(cleanPath);
+          } else if (type.endswith?.('/diagramData') || target.includes('diagrams/data')) {
+            if (zip.file(cleanPath)) diagramData.push(cleanPath);
           }
         }
-        if (!layoutPath || !zip.file(layoutPath)) return {};
 
-        const layoutXml = await zip.file(layoutPath).async('text');
-        const layoutDoc = domParser.parseFromString(layoutXml, 'application/xml');
         const phMap = {};
-
-        const layoutShapes = layoutDoc.getElementsByTagName('p:sp');
-        for (const sp of layoutShapes) {
-          const ph = sp.getElementsByTagName('p:ph')[0];
-          if (!ph) continue;
-          const type = ph.getAttribute('type') || 'body';
-          const idx = ph.getAttribute('idx') || '0';
-          const xfrm = sp.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
-          if (xfrm) {
-            const off = xfrm.getElementsByTagName('a:off')[0];
-            const ext = xfrm.getElementsByTagName('a:ext')[0];
-            if (off && ext) {
-              const coords = {
-                x: parseInt(off.getAttribute('x'), 10),
-                y: parseInt(off.getAttribute('y'), 10),
-                cx: parseInt(ext.getAttribute('cx'), 10),
-                cy: parseInt(ext.getAttribute('cy'), 10)
-              };
-              phMap[type] = coords;
-              phMap[`idx_${idx}`] = coords;
+        if (layoutPath && zip.file(layoutPath)) {
+          const layoutXml = await zip.file(layoutPath).async('text');
+          const layoutDoc = domParser.parseFromString(layoutXml, 'application/xml');
+          const layoutShapes = layoutDoc.getElementsByTagName('p:sp');
+          for (const sp of layoutShapes) {
+            const ph = sp.getElementsByTagName('p:ph')[0];
+            if (!ph) continue;
+            const type = ph.getAttribute('type') || 'body';
+            const idx = ph.getAttribute('idx') || '0';
+            const xfrm = sp.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
+            if (xfrm) {
+              const off = xfrm.getElementsByTagName('a:off')[0];
+              const ext = xfrm.getElementsByTagName('a:ext')[0];
+              if (off && ext) {
+                const coords = {
+                  x: parseInt(off.getAttribute('x'), 10),
+                  y: parseInt(off.getAttribute('y'), 10),
+                  cx: parseInt(ext.getAttribute('cx'), 10),
+                  cy: parseInt(ext.getAttribute('cy'), 10)
+                };
+                phMap[type] = coords;
+                phMap[`idx_${idx}`] = coords;
+              }
             }
           }
         }
-        return phMap;
+
+        return { imgMap, phMap, diagramDrawings, diagramData };
       }
 
       const slidePaths = [];
@@ -525,9 +745,11 @@
       });
 
       if (slidePaths.length === 0) {
-        viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 50px;">No slides found.</p>';
+        showError('No slides found inside this presentation.');
         return;
       }
+
+      updateTitle(file.name, `${slidePaths.length} Slides`);
 
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
@@ -535,28 +757,18 @@
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
-        const imgMap = {};
+        let imgMap = {};
         let layoutPhMap = {};
+        let diagramDrawings = [];
+        let diagramData = [];
 
         if (zip.file(relsPath)) {
           const relsXml = await zip.file(relsPath).async('text');
-          layoutPhMap = await loadLayoutMap(relsXml);
-
-          const relsDoc = domParser.parseFromString(relsXml, 'application/xml');
-          const rels = relsDoc.getElementsByTagName('Relationship');
-          for (const rel of rels) {
-            const rId = rel.getAttribute('Id');
-            const target = rel.getAttribute('Target');
-            if (target && target.includes('media/')) {
-              const cleanPath = 'ppt/' + target.replace(/^\.\.\//, '');
-              if (zip.file(cleanPath)) {
-                const blob = await zip.file(cleanPath).async('blob');
-                const objUrl = URL.createObjectURL(blob);
-                activeObjectUrls.push(objUrl);
-                imgMap[rId] = objUrl;
-              }
-            }
-          }
+          const relData = await loadSlideRelations(relsXml);
+          imgMap = relData.imgMap;
+          layoutPhMap = relData.phMap;
+          diagramDrawings = relData.diagramDrawings;
+          diagramData = relData.diagramData;
         }
 
         const card = document.createElement('div');
@@ -564,7 +776,7 @@
 
         const header = document.createElement('div');
         header.className = 'ppt-slide-header';
-        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Slides</span>`;
+        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Total</span>`;
         card.appendChild(header);
 
         const stage = document.createElement('div');
@@ -581,21 +793,22 @@
           }
         }
 
-        function processElements(parentXml, targetContainer, baseW, baseH) {
+        function processElements(parentXml, targetContainer, baseW, baseH, offsetX = 0, offsetY = 0) {
           for (const node of parentXml.children) {
             const tag = node.tagName;
 
-            // Group Shapes
+            // Group Shapes (With Proper chOff Coordinate Subtraction)
             if (tag === 'p:grpSp') {
               const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
               if (grpXfrm) {
                 const off = grpXfrm.getElementsByTagName('a:off')[0];
                 const ext = grpXfrm.getElementsByTagName('a:ext')[0];
+                const chOff = grpXfrm.getElementsByTagName('a:chOff')[0];
                 const chExt = grpXfrm.getElementsByTagName('a:chExt')[0];
 
                 if (off && ext) {
-                  const gx = parseInt(off.getAttribute('x'), 10);
-                  const gy = parseInt(off.getAttribute('y'), 10);
+                  const gx = parseInt(off.getAttribute('x'), 10) - offsetX;
+                  const gy = parseInt(off.getAttribute('y'), 10) - offsetY;
                   const gcx = parseInt(ext.getAttribute('cx'), 10);
                   const gcy = parseInt(ext.getAttribute('cy'), 10);
 
@@ -606,19 +819,21 @@
                   groupDiv.style.width = `${(gcx / baseW) * 100}%`;
                   groupDiv.style.height = `${(gcy / baseH) * 100}%`;
 
-                  const subW = chExt ? parseInt(chExt.getAttribute('cx'), 10) : gcx;
-                  const subH = chExt ? parseInt(chExt.getAttribute('cy'), 10) : gcy;
+                  const subOffX = chOff ? parseInt(chOff.getAttribute('x'), 10) : 0;
+                  const subOffY = chOff ? parseInt(chOff.getAttribute('y'), 10) : 0;
+                  const subW = (chExt ? parseInt(chExt.getAttribute('cx'), 10) : gcx) || sldW;
+                  const subH = (chExt ? parseInt(chExt.getAttribute('cy'), 10) : gcy) || sldH;
 
-                  processElements(node, groupDiv, subW, subH);
+                  processElements(node, groupDiv, subW, subH, subOffX, subOffY);
                   targetContainer.appendChild(groupDiv);
                 }
               }
               continue;
             }
 
-            // Normal Shapes & Text Blocks
-            if (tag === 'p:sp') {
-              const spPr = node.getElementsByTagName('p:spPr')[0];
+            // Standard & SmartArt Drawing Shapes
+            if (tag === 'p:sp' || tag === 'dsp:sp') {
+              const spPr = node.getElementsByTagName('p:spPr')[0] || node.getElementsByTagName('dsp:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
               let pos = null;
 
@@ -627,8 +842,8 @@
                 const ext = xfrm.getElementsByTagName('a:ext')[0];
                 if (off && ext) {
                   pos = {
-                    x: parseInt(off.getAttribute('x'), 10),
-                    y: parseInt(off.getAttribute('y'), 10),
+                    x: parseInt(off.getAttribute('x'), 10) - offsetX,
+                    y: parseInt(off.getAttribute('y'), 10) - offsetY,
                     cx: parseInt(ext.getAttribute('cx'), 10),
                     cy: parseInt(ext.getAttribute('cy'), 10)
                   };
@@ -661,14 +876,16 @@
               shapeDiv.style.width = `${(pos.cx / baseW) * 100}%`;
               shapeDiv.style.minHeight = `${(pos.cy / baseH) * 100}%`;
 
+              const noFill = spPr?.getElementsByTagName('a:noFill')[0];
               const solidFill = spPr?.getElementsByTagName('a:solidFill')[0];
-              let bgClr = resolveColor(solidFill);
+              let bgClr = noFill ? null : resolveColor(solidFill);
+
               const ln = spPr?.getElementsByTagName('a:ln')[0];
               let borderClr = ln ? resolveColor(ln.getElementsByTagName('a:solidFill')[0] || ln) : null;
 
-              const style = node.getElementsByTagName('p:style')[0];
+              const style = node.getElementsByTagName('p:style')[0] || node.getElementsByTagName('dsp:style')[0];
               if (style) {
-                if (!bgClr) {
+                if (!bgClr && !noFill) {
                   const fillRef = style.getElementsByTagName('a:fillRef')[0];
                   if (fillRef && parseInt(fillRef.getAttribute('idx'), 10) > 0) bgClr = resolveColor(fillRef);
                 }
@@ -688,18 +905,18 @@
                 if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
               }
 
-              // Contrast resolution: White text if background is dark, dark text if light
               const effectiveBg = bgClr || slideBgColor;
               const autoTextColor = isDarkColor(effectiveBg) ? '#ffffff' : '#111827';
 
-              const txBody = node.getElementsByTagName('p:txBody')[0];
+              const txBody = node.getElementsByTagName('p:txBody')[0] || node.getElementsByTagName('dsp:txBody')[0];
               if (txBody) {
                 const paras = txBody.getElementsByTagName('a:p');
                 for (const p of paras) {
                   const pPr = p.getElementsByTagName('a:pPr')[0];
                   const algn = pPr?.getAttribute('algn') || 'l';
                   const lvl = parseInt(pPr?.getAttribute('lvl') || '0', 10);
-                  const isBullet = pPr?.getElementsByTagName('a:buChar')[0] || pPr?.getElementsByTagName('a:buAutoNum')[0] || (lvl > 0);
+                  const noBu = pPr?.getElementsByTagName('a:buNone')[0];
+                  const isBullet = !noBu && (pPr?.getElementsByTagName('a:buChar')[0] || pPr?.getElementsByTagName('a:buAutoNum')[0] || (lvl > 0));
 
                   const pDiv = document.createElement('div');
                   pDiv.style.textAlign = algn === 'ctr' ? 'center' : (algn === 'r' ? 'right' : 'left');
@@ -711,7 +928,7 @@
                     const bu = document.createElement('span');
                     bu.textContent = '• ';
                     bu.style.fontWeight = 'bold';
-                    bu.style.color = '#4f46e5';
+                    bu.style.color = isDarkColor(effectiveBg) ? '#93c5fd' : '#4f46e5';
                     pDiv.appendChild(bu);
                   }
 
@@ -732,7 +949,7 @@
                         const sz = parseInt(rPr.getAttribute('sz'), 10);
                         if (sz) {
                           const ptSize = sz / 100;
-                          const sldW_pt = baseW / 12700;
+                          const sldW_pt = sldW / 12700;
                           const cqwVal = (ptSize / sldW_pt) * 100;
                           span.style.fontSize = `clamp(9px, ${cqwVal.toFixed(2)}cqw, 36px)`;
                         } else {
@@ -759,7 +976,7 @@
               targetContainer.appendChild(shapeDiv);
             }
 
-            // Connectors
+            // Connector Lines
             if (tag === 'p:cxnSp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -767,8 +984,8 @@
                 const off = xfrm.getElementsByTagName('a:off')[0];
                 const ext = xfrm.getElementsByTagName('a:ext')[0];
                 if (off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10);
-                  const y = parseInt(off.getAttribute('y'), 10);
+                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
+                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
                   const cx = parseInt(ext.getAttribute('cx'), 10);
                   const cy = parseInt(ext.getAttribute('cy'), 10);
 
@@ -802,8 +1019,8 @@
                 const ext = xfrm.getElementsByTagName('a:ext')[0];
 
                 if (rId && imgMap[rId] && off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10);
-                  const y = parseInt(off.getAttribute('y'), 10);
+                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
+                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
                   const cx = parseInt(ext.getAttribute('cx'), 10);
                   const cy = parseInt(ext.getAttribute('cy'), 10);
 
@@ -827,8 +1044,8 @@
                 const off = xfrm.getElementsByTagName('a:off')[0];
                 const ext = xfrm.getElementsByTagName('a:ext')[0];
                 if (off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10);
-                  const y = parseInt(off.getAttribute('y'), 10);
+                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
+                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
                   const cx = parseInt(ext.getAttribute('cx'), 10);
                   const cy = parseInt(ext.getAttribute('cy'), 10);
 
@@ -842,6 +1059,7 @@
                   const tableElem = document.createElement('table');
                   tableElem.style.width = '100%';
                   tableElem.style.borderCollapse = 'collapse';
+                  tableElem.style.backgroundColor = '#ffffff';
 
                   const rows = tbl.getElementsByTagName('a:tr');
                   for (const row of rows) {
@@ -865,7 +1083,36 @@
         }
 
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
-        if (spTree) processElements(spTree, stage, sldW, sldH);
+        if (spTree) processElements(spTree, stage, sldW, sldH, 0, 0);
+
+        // Render SmartArt Drawings if present on this slide
+        for (const dPath of diagramDrawings) {
+          const dXml = await zip.file(dPath).async('text');
+          const dDoc = domParser.parseFromString(dXml, 'application/xml');
+          const dspTree = dDoc.getElementsByTagName('dsp:spTree')[0];
+          if (dspTree) processElements(dspTree, stage, sldW, sldH, 0, 0);
+        }
+
+        // Fallback for SmartArt without pre-rendered drawing shapes
+        if (diagramDrawings.length === 0 && diagramData.length > 0) {
+          for (const dataPath of diagramData) {
+            const dataXml = await zip.file(dataPath).async('text');
+            const dataDoc = domParser.parseFromString(dataXml, 'application/xml');
+            const pts = dataDoc.getElementsByTagName('dgm:pt');
+            const grid = document.createElement('div');
+            grid.className = 'ppt-smartart-fallback';
+            for (const pt of pts) {
+              const txt = pt.textContent.trim();
+              if (txt) {
+                const item = document.createElement('div');
+                item.className = 'ppt-smartart-node';
+                item.textContent = txt;
+                grid.appendChild(item);
+              }
+            }
+            if (grid.hasChildNodes()) stage.appendChild(grid);
+          }
+        }
 
         card.appendChild(stage);
         viewer.appendChild(card);
@@ -879,8 +1126,7 @@
       if (!file) return;
 
       cleanupMemory();
-      scale = 1.0;
-      zoomWrapper.style.transform = 'scale(1)';
+      zoomHud.style.display = 'none';
 
       const fileName = file.name || 'document.docx';
       updateTitle(fileName);
@@ -891,22 +1137,31 @@
       try {
         if (ext === 'docx') {
           viewer.innerHTML = '';
+          updateTitle(fileName, 'DOCX');
           await docx.renderAsync(file, viewer, null, {
             inWrapper: true,
             ignoreWidth: false,
             breakPages: true
           });
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
         } else if (ext === 'xlsx' || ext === 'xls') {
           await renderExcel(file);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
         } else if (ext === 'pptx') {
           await renderPptx(file);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'ppt') {
+          showError('Old .ppt format detected. Please save or export it as .pptx.');
         } else {
-          viewer.innerHTML = '<p style="color: #ef4444; text-align: center; margin-top: 60px;">Unsupported file format.</p>';
+          showError('Unsupported file format. Please select a .docx, .xlsx, or .pptx file.');
         }
       } catch (err) {
-        viewer.innerHTML = `<p style="color: #ef4444; text-align: center; margin-top: 60px;">Error rendering: ${err.message}</p>`;
+        showError(`Error rendering file: ${err.message}`);
       } finally {
-        fileInput.value = ''; // FIX: Allows re-selecting the exact same document
+        fileInput.value = '';
       }
     }
 
@@ -914,6 +1169,32 @@
       const file = e.target.files[0];
       if (file) renderFile(file);
     });
+
+    // Laptop Drag-and-Drop Support
+    window.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      container.classList.add('drag-over');
+    });
+    window.addEventListener('dragleave', () => {
+      container.classList.remove('drag-over');
+    });
+    window.addEventListener('drop', (e) => {
+      e.preventDefault();
+      container.classList.remove('drag-over');
+      if (e.dataTransfer?.files?.length) {
+        renderFile(e.dataTransfer.files[0]);
+      }
+    });
+
+    // Desktop PWA File Handling API Support
+    if ('launchQueue' in window) {
+      window.launchQueue.setConsumer(async (launchParams) => {
+        if (launchParams.files && launchParams.files.length > 0) {
+          const file = await launchParams.files[0].getFile();
+          renderFile(file);
+        }
+      });
+    }
   </script>
 </body>
 </html>
