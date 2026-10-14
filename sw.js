@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reader-core-v3';
+const CACHE_NAME = 'reader-core-v4';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -15,15 +15,13 @@ const CDN_ASSETS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then(async (cache) => {
-      // 1. Cache local core files first
       await cache.addAll(CORE_ASSETS);
-      // 2. Fetch CDNs safely without breaking install if network lags
       for (const url of CDN_ASSETS) {
         try {
-          const res = await fetch(url);
+          const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
           if (res.ok) await cache.put(url, res);
         } catch (e) {
-          console.warn('CDN offline cache skipped for:', url);
+          console.warn('CDN offline pre-cache skipped for:', url);
         }
       }
     })
@@ -50,33 +48,35 @@ self.addEventListener('fetch', (event) => {
 
   if (req.method !== 'GET') return;
 
-  // Network-First for HTML navigation so you get fresh updates from Vercel
+  // Network-First for HTML navigation so classmates get updates immediately
   if (req.mode === 'navigate' || url.pathname === '/' || url.pathname.endsWith('.html')) {
     event.respondWith(
       fetch(req)
         .then((networkRes) => {
-          if (networkRes.ok) {
+          if (networkRes && networkRes.ok) {
             const copy = networkRes.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
           }
           return networkRes;
         })
-        .catch(() => caches.match(req).then((cached) => cached || caches.match('/')))
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('/index.html') || caches.match('/')))
     );
     return;
   }
 
-  // Cache-First for static scripts, SVG icons, and CDN bundles
+  // Cache-First with safe offline fallback for scripts and icons
   event.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
-      return fetch(req).then((networkRes) => {
-        if (networkRes.ok) {
-          const copy = networkRes.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-        }
-        return networkRes;
-      });
+      return fetch(req)
+        .then((networkRes) => {
+          if (networkRes && networkRes.ok) {
+            const copy = networkRes.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
+          }
+          return networkRes;
+        })
+        .catch(() => new Response('', { status: 408, statusText: 'Offline' }));
     })
   );
 });
