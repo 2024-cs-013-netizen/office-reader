@@ -1195,6 +1195,26 @@
         }
       });
     }
+    // ---------------------------------------------------------
+    // NATIVE ANDROID APK BRIDGE (FOR DIRECT WHATSAPP FILE TAPS)
+    // ---------------------------------------------------------
+    window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
+      try {
+        const binaryString = atob(base64Data);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+        const file = new File([blob], fileName || 'whatsapp-document.docx', {
+          type: mimeType || 'application/octet-stream'
+        });
+        renderFile(file);
+      } catch (err) {
+        showError('Failed to open file from WhatsApp: ' + err.message);
+      }
+    };
   </script>
 </body>
 </html>
