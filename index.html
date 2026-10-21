@@ -9,16 +9,13 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f111a">
 
-  <!-- Core Document & Archive Engines -->
+  <!-- Core Libraries -->
   <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
   <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- One Dark Pro Syntax Highlighting for CS Students -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- PDF.js with direct bundled worker to prevent WebView CORS crashes -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
 
   <style>
     * { 
@@ -83,14 +80,13 @@
       flex-shrink: 0;
     }
 
-    /* UPLOAD & ACTION BAR */
+    /* UPLOAD BAR */
     .upload-bar { 
       padding: 10px 14px; 
       display: flex;
       align-items: center;
       justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
+      gap: 10px;
       background: #12141f;
       flex-shrink: 0;
       border-bottom: 1px solid #1e2130;
@@ -99,28 +95,20 @@
     .btn { 
       background: #4f46e5; 
       color: white; 
-      padding: 9px 18px; 
+      padding: 9px 20px; 
       border-radius: 8px; 
       cursor: pointer; 
-      font-size: 0.84rem; 
+      font-size: 0.85rem; 
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-weight: 600;
-      border: none;
       box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
       transition: transform 0.12s, background 0.2s;
     }
     .btn:active { 
       background: #4338ca; 
       transform: scale(0.97);
-    }
-    .btn-secondary {
-      background: #25283a;
-      color: #82aaff;
-      box-shadow: none;
-      border: 1px solid #333852;
-      display: none;
     }
 
     /* SCROLL CONTAINER */
@@ -135,11 +123,6 @@
       padding: 12px 12px 64px 12px;
       touch-action: pan-x pan-y;
       position: relative;
-    }
-    #viewer-container.drag-over {
-      outline: 2px dashed #82aaff;
-      outline-offset: -8px;
-      background: #141829;
     }
 
     #zoom-sizer {
@@ -168,38 +151,22 @@
     .empty-state {
       color: #94a3b8;
       text-align: center;
-      margin: 50px auto 0 auto;
-      max-width: 360px;
-      padding: 24px 18px;
+      margin: 60px auto 0 auto;
+      max-width: 320px;
+      padding: 24px 16px;
       border: 1px dashed #2d3142;
       border-radius: 12px;
       background: #141724;
     }
     .empty-state h2 {
-      font-size: 1.05rem;
+      font-size: 1rem;
       color: #e2e8f0;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
     .empty-state p {
       font-size: 0.82rem;
-      line-height: 1.5;
-      color: #94a3b8;
-    }
-    .format-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-      margin-top: 14px;
-    }
-    .pill {
-      background: #1e2235;
-      color: #82aaff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid #2d324a;
+      line-height: 1.45;
+      color: #64748b;
     }
 
     /* FLOATING ZOOM BAR */
@@ -237,7 +204,7 @@
       text-align: center;
     }
 
-    /* LOADING SPINNER */
+    /* LOADING & ERROR */
     .loader-box {
       display: flex;
       flex-direction: column;
@@ -257,38 +224,7 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; text-align: center; }
 
-    /* WORD, ODT, EPUB & MARKDOWN PAPER STYLING */
-    .docx-wrapper { 
-      background: transparent !important; 
-      padding: 0 !important; 
-      margin: 0 !important;
-      display: block !important;
-    }
-    .docx-wrapper > section.docx, .doc-paper { 
-      min-width: 650px !important; 
-      max-width: 840px;
-      padding: 28px 24px !important; 
-      margin: 0 auto 16px auto !important; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
-      background: #ffffff !important;
-      color: #1e293b;
-      border-radius: 8px;
-      overflow-x: auto;
-      line-height: 1.65;
-      font-size: 0.95rem;
-    }
-    .doc-paper h1, .doc-paper h2, .doc-paper h3, .doc-paper h4 {
-      color: #0f172a;
-      margin: 16px 0 8px 0;
-    }
-    .doc-paper p { margin-bottom: 10px; }
-    .doc-paper ul, .doc-paper ol { margin: 8px 0 12px 24px; }
-    .doc-paper img { max-width: 100%; height: auto; margin: 10px 0; border-radius: 4px; }
-    .doc-paper pre { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
-    .doc-paper code { font-family: monospace; background: #f1f5f9; padding: 2px 5px; border-radius: 4px; color: #0f172a; }
-    .doc-paper pre code { background: transparent; color: inherit; padding: 0; }
-
-    /* EXCEL, CSV, TSV & ODS STYLING */
+    /* TABLES (EXCEL & CSV) */
     .excel-container {
       background: #ffffff;
       border-radius: 8px;
@@ -317,19 +253,9 @@
       cursor: pointer;
       white-space: nowrap;
     }
-    .sheet-tab.active {
-      background: #4f46e5;
-      color: #ffffff;
-    }
-    .table-wrapper {
-      width: 100%;
-      overflow-x: auto;
-      padding: 10px;
-    }
-    table { 
-      border-collapse: collapse; 
-      white-space: nowrap; 
-    }
+    .sheet-tab.active { background: #4f46e5; color: #ffffff; }
+    .table-wrapper { width: 100%; overflow-x: auto; padding: 10px; }
+    table { border-collapse: collapse; white-space: nowrap; }
     th, td { 
       border: 1px solid #cbd5e1; 
       padding: 6px 12px; 
@@ -339,7 +265,35 @@
     }
     th { background: #f1f5f9; font-weight: 600; }
 
-    /* PPTX STYLING */
+    /* PDF CANVAS CARDS */
+    .pdf-page-card {
+      background: #ffffff;
+      border-radius: 6px;
+      margin: 0 auto 18px auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      overflow: hidden;
+      width: max-content;
+    }
+    .pdf-page-card canvas { display: block; }
+
+    /* WORD & ODT WRAPPER */
+    .docx-wrapper { background: transparent !important; padding: 0 !important; margin: 0 !important; }
+    .docx-wrapper > section.docx, .odt-card { 
+      min-width: 650px !important; 
+      max-width: 820px;
+      padding: 28px 24px !important; 
+      margin: 0 auto 16px auto !important; 
+      background: #ffffff !important;
+      color: #1e293b;
+      border-radius: 6px;
+      line-height: 1.6;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .odt-card h1, .odt-card h2, .odt-card h3 { color: #0f172a; margin: 12px 0 6px 0; }
+    .odt-card p { margin-bottom: 8px; }
+    .odt-card ul { margin: 6px 0 10px 20px; }
+
+    /* PPTX CARDS */
     .ppt-slide-card {
       background: #181a24;
       border-radius: 10px;
@@ -354,8 +308,6 @@
       padding: 7px 14px;
       font-size: 0.75rem;
       font-weight: 600;
-      letter-spacing: 0.5px;
-      text-transform: uppercase;
       display: flex;
       justify-content: space-between;
       border-bottom: 1px solid #282c3f;
@@ -364,185 +316,26 @@
     .ppt-stage {
       position: relative;
       width: 100%;
-      container-type: inline-size;
       background: #ffffff;
-      box-sizing: border-box;
       border-radius: 0 0 10px 10px;
       overflow: hidden;
     }
-    .ppt-shape {
-      position: absolute;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      padding: 4px 8px;
-      overflow: visible;
-      word-break: break-word;
-    }
-    .ppt-pic {
-      position: absolute;
-      box-sizing: border-box;
-      object-fit: contain;
-    }
-    .ppt-table-box {
-      position: absolute;
-      box-sizing: border-box;
-      overflow: auto;
-    }
-    .ppt-smartart-fallback {
-      position: absolute;
-      inset: 18% 6% 8% 6%;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
-      align-content: start;
-    }
-    .ppt-smartart-node {
-      background: #eff6ff;
-      border: 1.5px solid #3b82f6;
-      color: #1e293b;
-      border-radius: 8px;
-      padding: 10px;
-      font-size: 13px;
-      font-weight: 500;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.06);
-    }
+    .ppt-shape { position: absolute; padding: 4px 8px; }
+    .ppt-pic { position: absolute; object-fit: contain; }
 
-    /* PDF STYLING */
-    .pdf-page-card {
-      background: #ffffff;
-      border-radius: 8px;
-      margin: 0 auto 20px auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-      width: max-content;
-      overflow: hidden;
-    }
-    .pdf-page-card canvas { display: block; }
-
-    /* ONE DARK PRO CODE VIEWER */
-    .code-container {
-      background: #282c34;
-      border: 1px solid #3e4451;
-      border-radius: 8px;
-      overflow: hidden;
-      min-width: 100%;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
-    }
-    .code-header {
-      background: #21252b;
-      padding: 8px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #3e4451;
-      color: #abb2bf;
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-    .copy-btn {
-      background: #3a3f4b;
-      color: #e2e8f0;
-      border: none;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 0.75rem;
-      cursor: pointer;
-      font-weight: 600;
-    }
-    .copy-btn:active { background: #4f46e5; }
-    .code-body {
-      padding: 14px;
-      overflow-x: auto;
-      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
-      font-size: 0.84rem;
-      line-height: 1.55;
-      color: #abb2bf;
-      white-space: pre;
-    }
-
-    /* JUPYTER NOTEBOOK (.IPYNB) STYLING */
-    .ipynb-container {
-      max-width: 860px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-    .ipynb-cell {
-      background: #1a1c29;
-      border: 1px solid #2d3142;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .ipynb-md {
-      background: #ffffff;
-      color: #1e293b;
-      padding: 18px 20px;
-      line-height: 1.6;
-    }
-    .ipynb-code-hdr {
-      background: #21252b;
-      color: #61afef;
-      padding: 5px 12px;
-      font-family: monospace;
-      font-size: 0.75rem;
-      border-bottom: 1px solid #2d3142;
-    }
-    .ipynb-output {
-      background: #11131c;
-      color: #cbd5e1;
-      padding: 12px 14px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      border-top: 1px dashed #2d3142;
-      white-space: pre-wrap;
-      overflow-x: auto;
-    }
-    .ipynb-output img {
-      max-width: 100%;
-      height: auto;
-      margin-top: 8px;
-      border-radius: 4px;
-      background: #fff;
-      padding: 4px;
-    }
-
-    /* ZIP ARCHIVE EXPLORER */
-    .zip-container {
-      max-width: 680px;
-      margin: 0 auto;
+    /* CODE & PLAIN TEXT */
+    .code-card {
       background: #181a26;
-      border: 1px solid #2d3142;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-    .zip-header {
-      background: #202334;
-      padding: 12px 16px;
-      color: #82aaff;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border-bottom: 1px solid #2d3142;
-    }
-    .zip-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 11px 16px;
-      border-bottom: 1px solid #222638;
-      color: #e2e8f0;
+      border: 1px solid #282c3f;
+      border-radius: 8px;
+      padding: 16px;
+      color: #abb2bf;
+      font-family: Consolas, monospace;
       font-size: 0.85rem;
-      cursor: pointer;
-    }
-    .zip-item:hover, .zip-item:active {
-      background: #282c42;
-    }
-    .zip-size {
-      color: #64748b;
-      font-size: 0.75rem;
-      margin-left: 10px;
-      flex-shrink: 0;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      min-width: 100%;
     }
   </style>
 </head>
@@ -557,8 +350,7 @@
   </header>
 
   <div class="upload-bar">
-    <button id="btn-back-zip" class="btn btn-secondary">⬅ Back to Archive</button>
-    <label for="fileInput" class="btn">Open Any Student File</label>
+    <label for="fileInput" class="btn">Open Any File</label>
     <input type="file" id="fileInput" accept="*/*">
   </div>
 
@@ -567,59 +359,22 @@
       <div id="zoom-wrapper">
         <div id="viewer">
           <div class="empty-state">
-            <h2>Super Reader Ready</h2>
-            <p>Open any university, coding, data science, or office file directly on your phone.</p>
-            <div class="format-pills">
-              <span class="pill">DOCX / ODT / RTF</span>
-              <span class="pill">XLSX / CSV / ODS</span>
-              <span class="pill">PPTX / ODP</span>
-              <span class="pill">PDF / EPUB</span>
-              <span class="pill">IPYNB (Jupyter)</span>
-              <span class="pill">C++ / PY / JAVA / SQL</span>
-              <span class="pill">ZIP Archives</span>
-            </div>
+            <h2>Ready to Read</h2>
+            <p>Select any PDF, CSV, Excel, Word, ODT, PowerPoint, or Code file to read it immediately.</p>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Floating Zoom Controls -->
   <div id="zoom-hud">
-    <button class="hud-btn" id="btn-fit" title="Fit to Screen">Fit</button>
-    <button class="hud-btn" id="btn-zoom-out" title="Zoom Out">−</button>
+    <button class="hud-btn" id="btn-fit">Fit</button>
+    <button class="hud-btn" id="btn-zoom-out">−</button>
     <span id="zoom-label">100%</span>
-    <button class="hud-btn" id="btn-zoom-in" title="Zoom In">+</button>
+    <button class="hud-btn" id="btn-zoom-in">+</button>
   </div>
 
   <script>
-    // ---------------------------------------------------------
-    // AUTO-UPDATE CACHE BUSTER FOR EXISTING STUDENT APKS
-    // ---------------------------------------------------------
-    const ENGINE_VERSION = '2.5-super-mario';
-    (async function autoUpdateExistingInstall() {
-      try {
-        const savedVersion = localStorage.getItem('READER_ENGINE_VER');
-        if ('serviceWorker' in navigator) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          for (const reg of regs) {
-            reg.update();
-          }
-        }
-        if (savedVersion !== ENGINE_VERSION) {
-          if ('caches' in window) {
-            const keys = await caches.keys();
-            await Promise.all(keys.map(k => caches.delete(k)));
-          }
-          localStorage.setItem('READER_ENGINE_VER', ENGINE_VERSION);
-        }
-      } catch (e) {}
-    })();
-
-    if (window.pdfjsLib) {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    }
-
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
     const container = document.getElementById('viewer-container');
@@ -629,84 +384,30 @@
     const docBadge = document.getElementById('doc-badge');
     const zoomHud = document.getElementById('zoom-hud');
     const zoomLabel = document.getElementById('zoom-label');
-    const btnBackZip = document.getElementById('btn-back-zip');
 
-    let activeObjectUrls = [];
-    let lastZipFile = null;
-
-    btnBackZip.addEventListener('click', () => {
-      if (lastZipFile) {
-        btnBackZip.style.display = 'none';
-        renderFile(lastZipFile);
-      }
-    });
-
-    function cleanupMemory() {
-      activeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
-      activeObjectUrls = [];
-    }
+    let scale = 1.0;
+    let fitScale = 1.0;
 
     function updateTitle(name, badgeText = '') {
       if (name) {
         docTitle.textContent = name;
         document.title = `${name} - Reader`;
       }
-      if (badgeText) {
-        docBadge.textContent = badgeText;
-        docBadge.style.display = 'inline-block';
-      } else {
-        docBadge.style.display = 'none';
-      }
+      docBadge.textContent = badgeText;
+      docBadge.style.display = badgeText ? 'inline-block' : 'none';
     }
 
     function showLoading(fileName) {
-      viewer.innerHTML = '';
-      const box = document.createElement('div');
-      box.className = 'loader-box';
-      const spin = document.createElement('div');
-      spin.className = 'spinner';
-      const txt = document.createElement('div');
-      txt.className = 'loader-text';
-      txt.textContent = `Opening ${fileName}...`;
-      box.appendChild(spin);
-      box.appendChild(txt);
-      viewer.appendChild(box);
+      viewer.innerHTML = `
+        <div class="loader-box">
+          <div class="spinner"></div>
+          <div class="loader-text">Opening ${fileName}...</div>
+        </div>`;
     }
 
     function showError(msg) {
-      viewer.innerHTML = '';
-      const p = document.createElement('p');
-      p.style.cssText = 'color: #ef4444; text-align: center; margin-top: 60px; padding: 0 20px; font-size: 0.9rem;';
-      p.textContent = msg;
-      viewer.appendChild(p);
+      viewer.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:60px; padding:0 20px;">${msg}</p>`;
     }
-
-    function isDarkColor(hex) {
-      if (!hex || !hex.startsWith('#')) return false;
-      let c = hex.substring(1);
-      if (c.length === 3) c = c.split('').map(x => x + x).join('');
-      const rgb = parseInt(c, 16);
-      if (isNaN(rgb)) return false;
-      const r = (rgb >> 16) & 0xff;
-      const g = (rgb >> 8) & 0xff;
-      const b = (rgb >> 0) & 0xff;
-      return (0.299 * r + 0.587 * g + 0.114 * b) < 138;
-    }
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js');
-    }
-
-    // ---------------------------------------------------------
-    // TRUE-LAYOUT PERSISTENT PINCH-TO-ZOOM & AUTO-FIT ENGINE
-    // ---------------------------------------------------------
-    let scale = 1.0;
-    let fitScale = 1.0;
-    let initialDist = 0;
-    let initialScale = 1.0;
-    let isPinching = false;
-    let touchMoved = false;
-    let lastTap = 0;
 
     function applyZoom(newScale) {
       scale = Math.min(Math.max(newScale, 0.35), 3.5);
@@ -714,11 +415,11 @@
       zoomLabel.textContent = `${Math.round(scale * 100)}%`;
 
       requestAnimationFrame(() => {
-        const naturalW = zoomWrapper.offsetWidth;
-        const naturalH = zoomWrapper.offsetHeight;
-        if (naturalW && naturalH) {
-          zoomSizer.style.width = `${Math.ceil(naturalW * scale)}px`;
-          zoomSizer.style.height = `${Math.ceil(naturalH * scale)}px`;
+        const w = zoomWrapper.offsetWidth;
+        const h = zoomWrapper.offsetHeight;
+        if (w && h) {
+          zoomSizer.style.width = `${Math.ceil(w * scale)}px`;
+          zoomSizer.style.height = `${Math.ceil(h * scale)}px`;
         }
       });
     }
@@ -731,11 +432,7 @@
       requestAnimationFrame(() => {
         const availableW = container.clientWidth - 24;
         const contentW = zoomWrapper.scrollWidth || zoomWrapper.offsetWidth;
-        if (contentW > availableW && availableW > 0) {
-          fitScale = Math.max(availableW / contentW, 0.4);
-        } else {
-          fitScale = 1.0;
-        }
+        fitScale = (contentW > availableW && availableW > 0) ? Math.max(availableW / contentW, 0.4) : 1.0;
         applyZoom(fitScale);
         container.scrollTo(0, 0);
       });
@@ -746,404 +443,82 @@
     document.getElementById('btn-zoom-out').addEventListener('click', () => applyZoom(scale - 0.2));
     zoomLabel.addEventListener('click', () => applyZoom(1.0));
 
-    function getDistance(touches) {
-      const dx = touches[0].clientX - touches[1].clientX;
-      const dy = touches[0].clientY - touches[1].clientY;
-      return Math.hypot(dx, dy);
-    }
-
-    container.addEventListener('touchstart', (e) => {
-      touchMoved = false;
-      if (e.touches.length === 2) {
-        isPinching = true;
-        initialDist = getDistance(e.touches);
-        initialScale = scale;
-      }
-    }, { passive: true });
-
-    container.addEventListener('touchmove', (e) => {
-      if (e.touches.length === 2 && initialDist > 0) {
-        e.preventDefault();
-        const currentDist = getDistance(e.touches);
-        const factor = currentDist / initialDist;
-        applyZoom(initialScale * factor);
-      } else if (e.touches.length === 1) {
-        touchMoved = true;
-      }
-    }, { passive: false });
-
-    container.addEventListener('touchend', (e) => {
-      if (e.touches.length < 2) initialDist = 0;
-
-      if (isPinching) {
-        if (e.touches.length === 0) {
-          isPinching = false;
-          lastTap = 0;
-        }
-        return;
-      }
-
-      if (touchMoved) {
-        lastTap = 0;
-        return;
-      }
-
-      if (e.touches.length === 0) {
-        const now = Date.now();
-        if (now - lastTap < 300) {
-          const target = Math.abs(scale - fitScale) < 0.08 ? 1.0 : fitScale;
-          applyZoom(target);
-          lastTap = 0;
-        } else {
-          lastTap = now;
-        }
-      }
-    });
-
     // ---------------------------------------------------------
-    // 1. MULTI-SHEET EXCEL, CSV, TSV & ODS ENGINE
+    // 1. DEDICATED BULLETPROOF CSV / TSV PARSER
     // ---------------------------------------------------------
-    async function renderExcel(file, badgeOverride = '') {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      
-      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-        showError('This spreadsheet or CSV is empty.');
-        return;
-      }
-
-      const label = badgeOverride || `${workbook.SheetNames.length} Sheet${workbook.SheetNames.length > 1 ? 's' : ''}`;
-      updateTitle(file.name, label);
+    async function renderCsv(file) {
+      const text = await file.text();
+      updateTitle(file.name, 'CSV');
       viewer.innerHTML = '';
+
+      const lines = text.split(/\r\n|\n|\r/);
+      if (!lines.length || (lines.length === 1 && !lines[0].trim())) {
+        showError('This CSV file is empty.');
+        return;
+      }
 
       const excelBox = document.createElement('div');
       excelBox.className = 'excel-container';
+      const wrapper = document.createElement('div');
+      wrapper.className = 'table-wrapper';
+      const table = document.createElement('table');
 
-      const tabsBar = document.createElement('div');
-      tabsBar.className = 'sheet-tabs';
+      lines.forEach((line, rIndex) => {
+        if (!line.trim()) return;
+        const tr = document.createElement('tr');
+        // Handle comma separation and quoted commas
+        const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
+        let match;
+        let cells = [];
+        while ((match = regex.exec(line))) {
+          let val = match[1] || '';
+          if (val.startsWith('"') && val.endsWith('"')) {
+            val = val.substring(1, val.length - 1).replace(/""/g, '"');
+          }
+          cells.push(val);
+          if (regex.lastIndex >= line.length) break;
+        }
 
-      const tableContent = document.createElement('div');
-      tableContent.className = 'table-wrapper';
-
-      workbook.SheetNames.forEach((sheetName, index) => {
-        const btn = document.createElement('button');
-        btn.className = `sheet-tab ${index === 0 ? 'active' : ''}`;
-        btn.textContent = sheetName;
-        btn.addEventListener('click', () => {
-          excelBox.querySelectorAll('.sheet-tab').forEach((t) => t.classList.remove('active'));
-          btn.classList.add('active');
-          tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[sheetName]);
-          fitDocumentToScreen();
+        cells.forEach(c => {
+          const cellElem = document.createElement(rIndex === 0 ? 'th' : 'td');
+          cellElem.textContent = c.trim();
+          tr.appendChild(cellElem);
         });
-        tabsBar.appendChild(btn);
+        table.appendChild(tr);
       });
 
-      tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
-      if (workbook.SheetNames.length > 1) {
-        excelBox.appendChild(tabsBar);
-      }
-      excelBox.appendChild(tableContent);
+      wrapper.appendChild(table);
+      excelBox.appendChild(wrapper);
       viewer.appendChild(excelBox);
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 2. OPENDOCUMENT (.ODT & .ODP) ENGINE
-    // ---------------------------------------------------------
-    async function renderOdt(file, isPresentation = false) {
-      viewer.innerHTML = '';
-      const zip = await JSZip.loadAsync(file);
-      if (!zip.file('content.xml')) {
-        showError('Invalid OpenDocument file (missing content.xml).');
-        return;
-      }
-
-      const contentXml = await zip.file('content.xml').async('text');
-      const domParser = new DOMParser();
-      const xmlDoc = domParser.parseFromString(contentXml, 'application/xml');
-
-      const imgMap = {};
-      for (const path of Object.keys(zip.files)) {
-        if (path.startsWith('Pictures/') || path.startsWith('media/')) {
-          const blob = await zip.file(path).async('blob');
-          const url = URL.createObjectURL(blob);
-          activeObjectUrls.push(url);
-          imgMap[path] = url;
-        }
-      }
-
-      function convertOdfNode(node) {
-        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue);
-        if (node.nodeType !== Node.ELEMENT_NODE) return null;
-
-        const tag = node.tagName;
-        if (tag === 'text:h') {
-          const lvl = Math.min(Math.max(parseInt(node.getAttribute('text:outline-level') || '2', 10), 1), 4);
-          const h = document.createElement('h' + lvl);
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) h.appendChild(c); }
-          return h;
-        }
-        if (tag === 'text:p') {
-          const p = document.createElement('p');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) p.appendChild(c); }
-          return p;
-        }
-        if (tag === 'text:span') {
-          const span = document.createElement('span');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) span.appendChild(c); }
-          return span;
-        }
-        if (tag === 'text:s') return document.createTextNode(' ');
-        if (tag === 'text:tab') return document.createTextNode('    ');
-        if (tag === 'text:line-break') return document.createElement('br');
-        if (tag === 'text:list') {
-          const ul = document.createElement('ul');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) ul.appendChild(c); }
-          return ul;
-        }
-        if (tag === 'text:list-item') {
-          const li = document.createElement('li');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) li.appendChild(c); }
-          return li;
-        }
-        if (tag === 'table:table') {
-          const tbl = document.createElement('table');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) tbl.appendChild(c); }
-          return tbl;
-        }
-        if (tag === 'table:table-row') {
-          const tr = document.createElement('tr');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) tr.appendChild(c); }
-          return tr;
-        }
-        if (tag === 'table:table-cell') {
-          const td = document.createElement('td');
-          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) td.appendChild(c); }
-          return td;
-        }
-        if (tag === 'draw:image') {
-          const href = node.getAttribute('xlink:href') || '';
-          if (imgMap[href]) {
-            const img = document.createElement('img');
-            img.src = imgMap[href];
-            return img;
-          }
-          return null;
-        }
-
-        const frag = document.createDocumentFragment();
-        for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) frag.appendChild(c); }
-        return frag;
-      }
-
-      if (isPresentation) {
-        const pages = xmlDoc.getElementsByTagName('draw:page');
-        updateTitle(file.name, `${pages.length} Slides (ODP)`);
-        for (let i = 0; i < pages.length; i++) {
-          const page = document.createElement('div');
-          page.className = 'doc-paper';
-          const hdr = document.createElement('div');
-          hdr.style.cssText = 'font-size:0.75rem; font-weight:700; color:#4f46e5; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;';
-          hdr.textContent = `Slide ${i + 1} of ${pages.length}`;
-          page.appendChild(hdr);
-          page.appendChild(convertOdfNode(pages[i]));
-          viewer.appendChild(page);
-        }
-      } else {
-        updateTitle(file.name, 'ODT');
-        const page = document.createElement('div');
-        page.className = 'doc-paper';
-        const bodyNode = xmlDoc.getElementsByTagName('office:text')[0] || xmlDoc.documentElement;
-        page.appendChild(convertOdfNode(bodyNode));
-        viewer.appendChild(page);
-      }
-    }
-
-    // ---------------------------------------------------------
-    // 3. EPUB E-BOOK & TEXTBOOK ENGINE
-    // ---------------------------------------------------------
-    async function renderEpub(file) {
-      viewer.innerHTML = '';
-      const zip = await JSZip.loadAsync(file);
-      const domParser = new DOMParser();
-
-      // Load all images in EPUB for inline rendering
-      const imgMap = {};
-      for (const path of Object.keys(zip.files)) {
-        if (/\.(png|jpe?g|gif|svg|webp)$/i.test(path)) {
-          const blob = await zip.file(path).async('blob');
-          const url = URL.createObjectURL(blob);
-          activeObjectUrls.push(url);
-          imgMap[path.split('/').pop()] = url;
-        }
-      }
-
-      // Find all HTML/XHTML chapters
-      const chapters = Object.keys(zip.files)
-        .filter(p => /\.(xhtml|html|htm)$/i.test(p) && !p.toLowerCase().includes('toc'))
-        .sort();
-
-      if (chapters.length === 0) {
-        showError('No readable chapters found in this EPUB.');
-        return;
-      }
-
-      updateTitle(file.name, `EPUB (${chapters.length} Chapters)`);
-
-      for (let i = 0; i < chapters.length; i++) {
-        const rawHtml = await zip.file(chapters[i]).async('text');
-        const doc = domParser.parseFromString(rawHtml, 'text/html');
-
-        doc.querySelectorAll('img, image').forEach(img => {
-          const src = (img.getAttribute('src') || img.getAttribute('xlink:href') || '').split('/').pop();
-          if (imgMap[src]) img.setAttribute('src', imgMap[src]);
-        });
-
-        const textCheck = (doc.body?.textContent || '').trim();
-        if (!textCheck && !doc.body?.querySelector('img')) continue;
-
-        const page = document.createElement('div');
-        page.className = 'doc-paper';
-        page.innerHTML = doc.body ? doc.body.innerHTML : rawHtml;
-        viewer.appendChild(page);
-      }
-    }
-
-    // ---------------------------------------------------------
-    // 4. JUPYTER NOTEBOOK (.IPYNB) ENGINE FOR CS / DATA SCIENCE
-    // ---------------------------------------------------------
-    async function renderNotebook(file) {
-      const raw = await file.text();
-      const nb = JSON.parse(raw);
-      const cells = nb.cells || [];
-
-      updateTitle(file.name, `IPYNB (${cells.length} Cells)`);
-      viewer.innerHTML = '';
-
-      const wrap = document.createElement('div');
-      wrap.className = 'ipynb-container';
-
-      cells.forEach((cell, idx) => {
-        const card = document.createElement('div');
-        card.className = 'ipynb-cell';
-        const sourceText = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
-
-        if (cell.cell_type === 'markdown') {
-          const mdDiv = document.createElement('div');
-          mdDiv.className = 'ipynb-md';
-          mdDiv.innerHTML = window.marked ? marked.parse(sourceText) : sourceText;
-          card.appendChild(mdDiv);
-        } else if (cell.cell_type === 'code') {
-          const hdr = document.createElement('div');
-          hdr.className = 'ipynb-code-hdr';
-          hdr.textContent = `In [${cell.execution_count || idx + 1}]:`;
-          card.appendChild(hdr);
-
-          const pre = document.createElement('pre');
-          pre.className = 'code-body';
-          const codeEl = document.createElement('code');
-          codeEl.className = 'language-python';
-          codeEl.textContent = sourceText;
-          if (window.hljs) hljs.highlightElement(codeEl);
-          pre.appendChild(codeEl);
-          card.appendChild(pre);
-
-          if (Array.isArray(cell.outputs) && cell.outputs.length > 0) {
-            const outBox = document.createElement('div');
-            outBox.className = 'ipynb-output';
-            cell.outputs.forEach(out => {
-              if (out.text) {
-                const t = Array.isArray(out.text) ? out.text.join('') : out.text;
-                outBox.appendChild(document.createTextNode(t));
-              }
-              if (out.data) {
-                if (out.data['image/png']) {
-                  const img = document.createElement('img');
-                  img.src = 'data:image/png;base64,' + out.data['image/png'].toString().replace(/\n/g, '');
-                  outBox.appendChild(img);
-                } else if (out.data['text/plain']) {
-                  const t = Array.isArray(out.data['text/plain']) ? out.data['text/plain'].join('') : out.data['text/plain'];
-                  outBox.appendChild(document.createTextNode(t));
-                }
-              }
-            });
-            card.appendChild(outBox);
-          }
-        }
-        wrap.appendChild(card);
-      });
-
-      viewer.appendChild(wrap);
-    }
-
-    // ---------------------------------------------------------
-    // 5. INTERACTIVE ZIP ARCHIVE EXPLORER
-    // ---------------------------------------------------------
-    async function renderZipArchive(file) {
-      lastZipFile = file;
-      btnBackZip.style.display = 'none';
-      viewer.innerHTML = '';
-
-      const zip = await JSZip.loadAsync(file);
-      const entries = [];
-      zip.forEach((relPath, entry) => {
-        if (!entry.dir) entries.push(entry);
-      });
-
-      updateTitle(file.name, `ZIP (${entries.length} Files)`);
-
-      const box = document.createElement('div');
-      box.className = 'zip-container';
-
-      const hdr = document.createElement('div');
-      hdr.className = 'zip-header';
-      hdr.textContent = `📦 Tap any file inside ${file.name} to open it:`;
-      box.appendChild(hdr);
-
-      for (const entry of entries) {
-        const row = document.createElement('div');
-        row.className = 'zip-item';
-        const nameSpan = document.createElement('span');
-        nameSpan.textContent = '📄 ' + entry.name;
-        const openTag = document.createElement('span');
-        openTag.className = 'zip-size';
-        openTag.textContent = 'Tap to Read ➔';
-        row.appendChild(nameSpan);
-        row.appendChild(openTag);
-
-        row.addEventListener('click', async () => {
-          showLoading(entry.name);
-          const blob = await entry.async('blob');
-          const subFile = new File([blob], entry.name.split('/').pop());
-          btnBackZip.style.display = 'inline-flex';
-          renderFile(subFile, true);
-        });
-
-        box.appendChild(row);
-      }
-
-      viewer.appendChild(box);
-    }
-
-    // ---------------------------------------------------------
-    // 6. PDF ENGINE (PDF.JS CANVAS RENDERER)
+    // 2. INLINE-SAFE PDF ENGINE
     // ---------------------------------------------------------
     async function renderPdf(file) {
+      viewer.innerHTML = '';
       if (!window.pdfjsLib) {
-        showError('PDF library loading... Please check your internet connection.');
+        showError('PDF engine could not initialize. Please reconnect to internet.');
         return;
       }
-      const arrayBuffer = await file.arrayBuffer();
-      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      updateTitle(file.name, `${pdf.numPages} Page${pdf.numPages > 1 ? 's' : ''}`);
-      viewer.innerHTML = '';
 
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
+      const buffer = await file.arrayBuffer();
+      // Disable remote worker requests so WebView executes on the bundled worker
+      const pdf = await pdfjsLib.getDocument({
+        data: buffer,
+        disableFontFace: false
+      }).promise;
+
+      updateTitle(file.name, `${pdf.numPages} Page${pdf.numPages > 1 ? 's' : ''}`);
+
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
         const viewport = page.getViewport({ scale: 1.5 });
 
         const card = document.createElement('div');
         card.className = 'pdf-page-card';
-
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
@@ -1152,751 +527,136 @@
         card.appendChild(canvas);
         viewer.appendChild(card);
 
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       }
+
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 7. MARKDOWN, RTF & ONE DARK PRO CODE ENGINE
+    // 3. EXCEL ENGINE (.XLSX, .XLS, .ODS)
     // ---------------------------------------------------------
-    async function renderTextOrCode(file, ext) {
-      let text = await file.text();
-
-      // Markdown Notes (.md)
-      if ((ext === 'md' || ext === 'markdown') && window.marked) {
-        updateTitle(file.name, 'MARKDOWN');
-        viewer.innerHTML = '';
-        const page = document.createElement('div');
-        page.className = 'doc-paper';
-        page.innerHTML = marked.parse(text);
-        viewer.appendChild(page);
-        return;
-      }
-
-      // Rich Text Format (.rtf)
-      if (ext === 'rtf') {
-        text = text
-          .replace(/\\par[d]?/g, '\n')
-          .replace(/\{\*?\\[^{}]+}|[{}]|\\\n?[A-Za-z]+\n?(?:-?\d+)?[ ]?/g, '')
-          .replace(/\\'[0-9a-fA-F]{2}/g, '')
-          .trim();
-        updateTitle(file.name, 'RTF');
-        viewer.innerHTML = '';
-        const page = document.createElement('div');
-        page.className = 'doc-paper';
-        page.style.whiteSpace = 'pre-wrap';
-        page.textContent = text;
-        viewer.appendChild(page);
-        return;
-      }
-
-      if (ext === 'json') {
-        try { text = JSON.stringify(JSON.parse(text), null, 2); } catch (e) {}
-      }
-
-      updateTitle(file.name, ext.toUpperCase());
+    async function renderExcel(file) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      
+      updateTitle(file.name, `${workbook.SheetNames.length} Sheets`);
       viewer.innerHTML = '';
 
-      const box = document.createElement('div');
-      box.className = 'code-container';
+      const excelBox = document.createElement('div');
+      excelBox.className = 'excel-container';
+      const tabsBar = document.createElement('div');
+      tabsBar.className = 'sheet-tabs';
+      const tableContent = document.createElement('div');
+      tableContent.className = 'table-wrapper';
 
-      const hdr = document.createElement('div');
-      hdr.className = 'code-header';
-      const langSpan = document.createElement('span');
-      langSpan.textContent = `${file.name} (${text.split('\n').length} lines)`;
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'copy-btn';
-      copyBtn.textContent = 'Copy Code';
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(text);
-        copyBtn.textContent = 'Copied! ✓';
-        setTimeout(() => copyBtn.textContent = 'Copy Code', 1800);
+      workbook.SheetNames.forEach((name, index) => {
+        const btn = document.createElement('button');
+        btn.className = `sheet-tab ${index === 0 ? 'active' : ''}`;
+        btn.textContent = name;
+        btn.onclick = () => {
+          excelBox.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+          btn.classList.add('active');
+          tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[name]);
+          fitDocumentToScreen();
+        };
+        tabsBar.appendChild(btn);
       });
-      hdr.appendChild(langSpan);
-      hdr.appendChild(copyBtn);
 
-      const pre = document.createElement('pre');
-      pre.className = 'code-body';
-      const codeEl = document.createElement('code');
-      codeEl.textContent = text || '(Empty file)';
-      if (window.hljs) {
-        try { hljs.highlightElement(codeEl); } catch (e) {}
-      }
-      pre.appendChild(codeEl);
-
-      box.appendChild(hdr);
-      box.appendChild(pre);
-      viewer.appendChild(box);
+      tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
+      if (workbook.SheetNames.length > 1) excelBox.appendChild(tabsBar);
+      excelBox.appendChild(tableContent);
+      viewer.appendChild(excelBox);
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 8. IMAGE, DIAGRAM, AUDIO & VIDEO ENGINE
+    // 4. ODT ENGINE
     // ---------------------------------------------------------
-    function renderMedia(file, type) {
-      viewer.innerHTML = '';
-      const url = URL.createObjectURL(file);
-      activeObjectUrls.push(url);
-      updateTitle(file.name, type.toUpperCase());
-
-      if (type === 'image') {
-        const card = document.createElement('div');
-        card.style.cssText = 'text-align:center; padding:10px;';
-        const img = document.createElement('img');
-        img.src = url;
-        img.style.cssText = 'max-width:100%; height:auto; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.4);';
-        card.appendChild(img);
-        viewer.appendChild(card);
-      } else if (type === 'audio') {
-        const card = document.createElement('div');
-        card.className = 'empty-state';
-        card.innerHTML = `<h2 style="margin-bottom:14px;">🎧 ${file.name}</h2>`;
-        const audio = document.createElement('audio');
-        audio.controls = true;
-        audio.src = url;
-        audio.style.width = '100%';
-        card.appendChild(audio);
-        viewer.appendChild(card);
-      } else if (type === 'video') {
-        const card = document.createElement('div');
-        card.style.cssText = 'max-width:760px; margin:0 auto; text-align:center;';
-        const video = document.createElement('video');
-        video.controls = true;
-        video.src = url;
-        video.style.cssText = 'width:100%; border-radius:10px; background:#000;';
-        card.appendChild(video);
-        viewer.appendChild(card);
-      }
-    }
-
-    // ---------------------------------------------------------
-    // 9. POWERPOINT (PPTX) ENGINE WITH GROUP OFFSET & SMARTART
-    // ---------------------------------------------------------
-    async function renderPptx(file) {
+    async function renderOdt(file) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
-      const domParser = new DOMParser();
-
-      let sldW = 12192000;
-      let sldH = 6858000;
-      if (zip.file('ppt/presentation.xml')) {
-        const presXml = await zip.file('ppt/presentation.xml').async('text');
-        const presDoc = domParser.parseFromString(presXml, 'application/xml');
-        const sldSz = presDoc.getElementsByTagName('p:sldSz')[0];
-        if (sldSz) {
-          sldW = parseInt(sldSz.getAttribute('cx'), 10) || sldW;
-          sldH = parseInt(sldSz.getAttribute('cy'), 10) || sldH;
-        }
-      }
-
-      const themeColors = {
-        'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
-        'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
-        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c',
-        'tx1': '#111827', 'tx2': '#374151', 'bg1': '#ffffff', 'bg2': '#f3f4f6'
-      };
-
-      if (zip.file('ppt/theme/theme1.xml')) {
-        const themeXml = await zip.file('ppt/theme/theme1.xml').async('text');
-        const themeDoc = domParser.parseFromString(themeXml, 'application/xml');
-        for (const key of ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6']) {
-          const node = themeDoc.getElementsByTagName('a:' + key)[0];
-          if (node) {
-            const srgb = node.getElementsByTagName('a:srgbClr')[0];
-            const sys = node.getElementsByTagName('a:sysClr')[0];
-            if (srgb) themeColors[key] = '#' + srgb.getAttribute('val');
-            else if (sys && sys.getAttribute('lastClr')) themeColors[key] = '#' + sys.getAttribute('lastClr');
-          }
-        }
-        themeColors.tx1 = themeColors.dk1;
-        themeColors.tx2 = themeColors.dk2;
-        themeColors.bg1 = themeColors.lt1;
-        themeColors.bg2 = themeColors.lt2;
-      }
-
-      function resolveColor(elem) {
-        if (!elem) return null;
-        const srgb = elem.getElementsByTagName('a:srgbClr')[0];
-        if (srgb) return '#' + srgb.getAttribute('val');
-        const scheme = elem.getElementsByTagName('a:schemeClr')[0];
-        if (scheme) return themeColors[scheme.getAttribute('val')] || null;
-        const sys = elem.getElementsByTagName('a:sysClr')[0];
-        if (sys && sys.getAttribute('lastClr')) return '#' + sys.getAttribute('lastClr');
-        return null;
-      }
-
-      async function loadSlideRelations(relsXmlStr) {
-        const relsDoc = domParser.parseFromString(relsXmlStr, 'application/xml');
-        const rels = relsDoc.getElementsByTagName('Relationship');
-        let layoutPath = null;
-        const imgMap = {};
-        const diagramDrawings = [];
-        const diagramData = [];
-
-        for (const rel of rels) {
-          const rId = rel.getAttribute('Id');
-          const type = rel.getAttribute('Type') || '';
-          const target = rel.getAttribute('Target') || '';
-          const cleanPath = 'ppt/' + target.replace(/^(\.\.\/)+/, '');
-
-          if (type.endsWith('/slideLayout')) {
-            layoutPath = cleanPath;
-          } else if (target.includes('media/') && zip.file(cleanPath)) {
-            const blob = await zip.file(cleanPath).async('blob');
-            const objUrl = URL.createObjectURL(blob);
-            activeObjectUrls.push(objUrl);
-            imgMap[rId] = objUrl;
-          } else if (type.includes('diagramDrawing') && zip.file(cleanPath)) {
-            diagramDrawings.push(cleanPath);
-          } else if (type.endswith?.('/diagramData') || target.includes('diagrams/data')) {
-            if (zip.file(cleanPath)) diagramData.push(cleanPath);
-          }
-        }
-
-        const phMap = {};
-        if (layoutPath && zip.file(layoutPath)) {
-          const layoutXml = await zip.file(layoutPath).async('text');
-          const layoutDoc = domParser.parseFromString(layoutXml, 'application/xml');
-          const layoutShapes = layoutDoc.getElementsByTagName('p:sp');
-          for (const sp of layoutShapes) {
-            const ph = sp.getElementsByTagName('p:ph')[0];
-            if (!ph) continue;
-            const type = ph.getAttribute('type') || 'body';
-            const idx = ph.getAttribute('idx') || '0';
-            const xfrm = sp.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
-            if (xfrm) {
-              const off = xfrm.getElementsByTagName('a:off')[0];
-              const ext = xfrm.getElementsByTagName('a:ext')[0];
-              if (off && ext) {
-                const coords = {
-                  x: parseInt(off.getAttribute('x'), 10),
-                  y: parseInt(off.getAttribute('y'), 10),
-                  cx: parseInt(ext.getAttribute('cx'), 10),
-                  cy: parseInt(ext.getAttribute('cy'), 10)
-                };
-                phMap[type] = coords;
-                phMap[`idx_${idx}`] = coords;
-              }
-            }
-          }
-        }
-
-        return { imgMap, phMap, diagramDrawings, diagramData };
-      }
-
-      const slidePaths = [];
-      zip.forEach((path) => {
-        if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
-      });
-      slidePaths.sort((a, b) => {
-        const nA = parseInt(a.match(/slide(\d+)\.xml/i)[1], 10);
-        const nB = parseInt(b.match(/slide(\d+)\.xml/i)[1], 10);
-        return nA - nB;
-      });
-
-      if (slidePaths.length === 0) {
-        showError('No slides found inside this presentation.');
+      if (!zip.file('content.xml')) {
+        showError('Invalid ODT file.');
         return;
       }
+      const xmlStr = await zip.file('content.xml').async('text');
+      const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
 
-      updateTitle(file.name, `${slidePaths.length} Slides`);
+      updateTitle(file.name, 'ODT');
+      const card = document.createElement('div');
+      card.className = 'odt-card';
 
-      for (let i = 0; i < slidePaths.length; i++) {
-        const path = slidePaths[i];
-        const slideXmlStr = await zip.file(path).async('text');
-        const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
-
-        const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
-        let imgMap = {};
-        let layoutPhMap = {};
-        let diagramDrawings = [];
-        let diagramData = [];
-
-        if (zip.file(relsPath)) {
-          const relsXml = await zip.file(relsPath).async('text');
-          const relData = await loadSlideRelations(relsXml);
-          imgMap = relData.imgMap;
-          layoutPhMap = relData.phMap;
-          diagramDrawings = relData.diagramDrawings;
-          diagramData = relData.diagramData;
-        }
-
-        const card = document.createElement('div');
-        card.className = 'ppt-slide-card';
-
-        const header = document.createElement('div');
-        header.className = 'ppt-slide-header';
-        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Total</span>`;
-        card.appendChild(header);
-
-        const stage = document.createElement('div');
-        stage.className = 'ppt-stage';
-        stage.style.aspectRatio = `${sldW} / ${sldH}`;
-
-        let slideBgColor = '#ffffff';
-        const bg = xmlDoc.getElementsByTagName('p:bg')[0];
-        if (bg) {
-          const c = resolveColor(bg);
-          if (c) {
-            slideBgColor = c;
-            stage.style.backgroundColor = c;
-          }
-        }
-
-        function processElements(parentXml, targetContainer, baseW, baseH, offsetX = 0, offsetY = 0) {
-          for (const node of parentXml.children) {
-            const tag = node.tagName;
-
-            if (tag === 'p:grpSp') {
-              const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
-              if (grpXfrm) {
-                const off = grpXfrm.getElementsByTagName('a:off')[0];
-                const ext = grpXfrm.getElementsByTagName('a:ext')[0];
-                const chOff = grpXfrm.getElementsByTagName('a:chOff')[0];
-                const chExt = grpXfrm.getElementsByTagName('a:chExt')[0];
-
-                if (off && ext) {
-                  const gx = parseInt(off.getAttribute('x'), 10) - offsetX;
-                  const gy = parseInt(off.getAttribute('y'), 10) - offsetY;
-                  const gcx = parseInt(ext.getAttribute('cx'), 10);
-                  const gcy = parseInt(ext.getAttribute('cy'), 10);
-
-                  const groupDiv = document.createElement('div');
-                  groupDiv.style.position = 'absolute';
-                  groupDiv.style.left = `${(gx / baseW) * 100}%`;
-                  groupDiv.style.top = `${(gy / baseH) * 100}%`;
-                  groupDiv.style.width = `${(gcx / baseW) * 100}%`;
-                  groupDiv.style.height = `${(gcy / baseH) * 100}%`;
-
-                  const subOffX = chOff ? parseInt(chOff.getAttribute('x'), 10) : 0;
-                  const subOffY = chOff ? parseInt(chOff.getAttribute('y'), 10) : 0;
-                  const subW = (chExt ? parseInt(chExt.getAttribute('cx'), 10) : gcx) || sldW;
-                  const subH = (chExt ? parseInt(chExt.getAttribute('cy'), 10) : gcy) || sldH;
-
-                  processElements(node, groupDiv, subW, subH, subOffX, subOffY);
-                  targetContainer.appendChild(groupDiv);
-                }
-              }
-              continue;
-            }
-
-            if (tag === 'p:sp' || tag === 'dsp:sp') {
-              const spPr = node.getElementsByTagName('p:spPr')[0] || node.getElementsByTagName('dsp:spPr')[0];
-              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
-              let pos = null;
-
-              if (xfrm) {
-                const off = xfrm.getElementsByTagName('a:off')[0];
-                const ext = xfrm.getElementsByTagName('a:ext')[0];
-                if (off && ext) {
-                  pos = {
-                    x: parseInt(off.getAttribute('x'), 10) - offsetX,
-                    y: parseInt(off.getAttribute('y'), 10) - offsetY,
-                    cx: parseInt(ext.getAttribute('cx'), 10),
-                    cy: parseInt(ext.getAttribute('cy'), 10)
-                  };
-                }
-              }
-
-              if (!pos) {
-                const ph = node.getElementsByTagName('p:ph')[0];
-                if (ph) {
-                  const type = ph.getAttribute('type') || 'body';
-                  const idx = ph.getAttribute('idx');
-                  if (idx && layoutPhMap[`idx_${idx}`]) pos = layoutPhMap[`idx_${idx}`];
-                  else if (layoutPhMap[type]) pos = layoutPhMap[type];
-                  else {
-                    if (type.includes('Title') || type === 'title' || type === 'ctrTitle') {
-                      pos = { x: baseW * 0.05, y: baseH * 0.06, cx: baseW * 0.9, cy: baseH * 0.16 };
-                    } else {
-                      pos = { x: baseW * 0.05, y: baseH * 0.24, cx: baseW * 0.9, cy: baseH * 0.70 };
-                    }
-                  }
-                }
-              }
-
-              if (!pos) continue;
-
-              const shapeDiv = document.createElement('div');
-              shapeDiv.className = 'ppt-shape';
-              shapeDiv.style.left = `${(pos.x / baseW) * 100}%`;
-              shapeDiv.style.top = `${(pos.y / baseH) * 100}%`;
-              shapeDiv.style.width = `${(pos.cx / baseW) * 100}%`;
-              shapeDiv.style.minHeight = `${(pos.cy / baseH) * 100}%`;
-
-              const noFill = spPr?.getElementsByTagName('a:noFill')[0];
-              const solidFill = spPr?.getElementsByTagName('a:solidFill')[0];
-              let bgClr = noFill ? null : resolveColor(solidFill);
-
-              const ln = spPr?.getElementsByTagName('a:ln')[0];
-              let borderClr = ln ? resolveColor(ln.getElementsByTagName('a:solidFill')[0] || ln) : null;
-
-              const style = node.getElementsByTagName('p:style')[0] || node.getElementsByTagName('dsp:style')[0];
-              if (style) {
-                if (!bgClr && !noFill) {
-                  const fillRef = style.getElementsByTagName('a:fillRef')[0];
-                  if (fillRef && parseInt(fillRef.getAttribute('idx'), 10) > 0) bgClr = resolveColor(fillRef);
-                }
-                if (!borderClr) {
-                  const lnRef = style.getElementsByTagName('a:lnRef')[0];
-                  if (lnRef && parseInt(lnRef.getAttribute('idx'), 10) > 0) borderClr = resolveColor(lnRef);
-                }
-              }
-
-              if (bgClr) shapeDiv.style.backgroundColor = bgClr;
-              if (borderClr) shapeDiv.style.border = `1.5px solid ${borderClr}`;
-
-              const prstGeom = spPr?.getElementsByTagName('a:prstGeom')[0];
-              if (prstGeom) {
-                const prst = prstGeom.getAttribute('prst');
-                if (prst === 'roundRect') shapeDiv.style.borderRadius = '6px';
-                if (prst === 'ellipse') shapeDiv.style.borderRadius = '50%';
-              }
-
-              const effectiveBg = bgClr || slideBgColor;
-              const autoTextColor = isDarkColor(effectiveBg) ? '#ffffff' : '#111827';
-
-              const txBody = node.getElementsByTagName('p:txBody')[0] || node.getElementsByTagName('dsp:txBody')[0];
-              if (txBody) {
-                const paras = txBody.getElementsByTagName('a:p');
-                for (const p of paras) {
-                  const pPr = p.getElementsByTagName('a:pPr')[0];
-                  const algn = pPr?.getAttribute('algn') || 'l';
-                  const lvl = parseInt(pPr?.getAttribute('lvl') || '0', 10);
-                  const noBu = pPr?.getElementsByTagName('a:buNone')[0];
-                  const isBullet = !noBu && (pPr?.getElementsByTagName('a:buChar')[0] || pPr?.getElementsByTagName('a:buAutoNum')[0] || (lvl > 0));
-
-                  const pDiv = document.createElement('div');
-                  pDiv.style.textAlign = algn === 'ctr' ? 'center' : (algn === 'r' ? 'right' : 'left');
-                  pDiv.style.lineHeight = '1.35';
-                  pDiv.style.marginBottom = '3px';
-                  if (lvl > 0) pDiv.style.paddingLeft = `${lvl * 14}px`;
-
-                  if (isBullet) {
-                    const bu = document.createElement('span');
-                    bu.textContent = '• ';
-                    bu.style.fontWeight = 'bold';
-                    bu.style.color = isDarkColor(effectiveBg) ? '#93c5fd' : '#4f46e5';
-                    pDiv.appendChild(bu);
-                  }
-
-                  for (const child of p.childNodes) {
-                    if (child.nodeName === 'a:r' || child.nodeName === 'a:fld') {
-                      const t = child.getElementsByTagName('a:t')[0]?.textContent || '';
-                      if (!t) continue;
-
-                      const span = document.createElement('span');
-                      span.textContent = t;
-
-                      const rPr = child.getElementsByTagName('a:rPr')[0];
-                      if (rPr) {
-                        if (rPr.getAttribute('b') === '1') span.style.fontWeight = 'bold';
-                        if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
-                        if (rPr.getAttribute('u') === 'sng') span.style.textDecoration = 'underline';
-
-                        const sz = parseInt(rPr.getAttribute('sz'), 10);
-                        if (sz) {
-                          const ptSize = sz / 100;
-                          const sldW_pt = sldW / 12700;
-                          const cqwVal = (ptSize / sldW_pt) * 100;
-                          span.style.fontSize = `clamp(9px, ${cqwVal.toFixed(2)}cqw, 36px)`;
-                        } else {
-                          span.style.fontSize = 'clamp(10px, 1.8cqw, 20px)';
-                        }
-
-                        const txtClr = resolveColor(rPr);
-                        span.style.color = txtClr || autoTextColor;
-                      } else {
-                        span.style.fontSize = 'clamp(10px, 1.8cqw, 20px)';
-                        span.style.color = autoTextColor;
-                      }
-
-                      pDiv.appendChild(span);
-                    } else if (child.nodeName === 'a:br') {
-                      pDiv.appendChild(document.createElement('br'));
-                    }
-                  }
-
-                  if (pDiv.hasChildNodes()) shapeDiv.appendChild(pDiv);
-                }
-              }
-
-              targetContainer.appendChild(shapeDiv);
-            }
-
-            if (tag === 'p:cxnSp') {
-              const spPr = node.getElementsByTagName('p:spPr')[0];
-              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
-              if (xfrm) {
-                const off = xfrm.getElementsByTagName('a:off')[0];
-                const ext = xfrm.getElementsByTagName('a:ext')[0];
-                if (off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
-                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
-                  const cx = parseInt(ext.getAttribute('cx'), 10);
-                  const cy = parseInt(ext.getAttribute('cy'), 10);
-
-                  const line = document.createElement('div');
-                  line.style.position = 'absolute';
-                  line.style.left = `${(x / baseW) * 100}%`;
-                  line.style.top = `${(y / baseH) * 100}%`;
-                  line.style.width = `${Math.max((cx / baseW) * 100, 0.2)}%`;
-                  line.style.height = `${Math.max((cy / baseH) * 100, 0.2)}%`;
-
-                  const ln = spPr.getElementsByTagName('a:ln')[0];
-                  const lnClr = resolveColor(ln?.getElementsByTagName('a:solidFill')[0] || ln) || '#64748b';
-                  if (cx >= cy) line.style.borderTop = `2px solid ${lnClr}`;
-                  else line.style.borderLeft = `2px solid ${lnClr}`;
-
-                  targetContainer.appendChild(line);
-                }
-              }
-            }
-
-            if (tag === 'p:pic') {
-              const spPr = node.getElementsByTagName('p:spPr')[0];
-              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
-              const blip = node.getElementsByTagName('a:blip')[0];
-              if (xfrm && blip) {
-                const rId = blip.getAttribute('r:embed') || 
-                            blip.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed') ||
-                            blip.getAttribute('embed');
-                const off = xfrm.getElementsByTagName('a:off')[0];
-                const ext = xfrm.getElementsByTagName('a:ext')[0];
-
-                if (rId && imgMap[rId] && off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
-                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
-                  const cx = parseInt(ext.getAttribute('cx'), 10);
-                  const cy = parseInt(ext.getAttribute('cy'), 10);
-
-                  const img = document.createElement('img');
-                  img.src = imgMap[rId];
-                  img.className = 'ppt-pic';
-                  img.style.left = `${(x / baseW) * 100}%`;
-                  img.style.top = `${(y / baseH) * 100}%`;
-                  img.style.width = `${(cx / baseW) * 100}%`;
-                  img.style.height = `${(cy / baseH) * 100}%`;
-                  targetContainer.appendChild(img);
-                }
-              }
-            }
-
-            if (tag === 'p:graphicFrame') {
-              const tbl = node.getElementsByTagName('a:tbl')[0];
-              const xfrm = node.getElementsByTagName('p:xfrm')[0];
-              if (tbl && xfrm) {
-                const off = xfrm.getElementsByTagName('a:off')[0];
-                const ext = xfrm.getElementsByTagName('a:ext')[0];
-                if (off && ext) {
-                  const x = parseInt(off.getAttribute('x'), 10) - offsetX;
-                  const y = parseInt(off.getAttribute('y'), 10) - offsetY;
-                  const cx = parseInt(ext.getAttribute('cx'), 10);
-                  const cy = parseInt(ext.getAttribute('cy'), 10);
-
-                  const box = document.createElement('div');
-                  box.className = 'ppt-table-box';
-                  box.style.left = `${(x / baseW) * 100}%`;
-                  box.style.top = `${(y / baseH) * 100}%`;
-                  box.style.width = `${(cx / baseW) * 100}%`;
-                  box.style.height = `${(cy / baseH) * 100}%`;
-
-                  const tableElem = document.createElement('table');
-                  tableElem.style.width = '100%';
-                  tableElem.style.borderCollapse = 'collapse';
-                  tableElem.style.backgroundColor = '#ffffff';
-
-                  const rows = tbl.getElementsByTagName('a:tr');
-                  for (const row of rows) {
-                    const tr = document.createElement('tr');
-                    for (const cell of row.getElementsByTagName('a:tc')) {
-                      const td = document.createElement('td');
-                      td.style.border = '1px solid #cbd5e1';
-                      td.style.padding = '4px 6px';
-                      td.style.fontSize = '11px';
-                      td.textContent = cell.textContent.trim();
-                      tr.appendChild(td);
-                    }
-                    tableElem.appendChild(tr);
-                  }
-                  box.appendChild(tableElem);
-                  targetContainer.appendChild(box);
-                }
-              }
-            }
-          }
-        }
-
-        const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
-        if (spTree) processElements(spTree, stage, sldW, sldH, 0, 0);
-
-        for (const dPath of diagramDrawings) {
-          const dXml = await zip.file(dPath).async('text');
-          const dDoc = domParser.parseFromString(dXml, 'application/xml');
-          const dspTree = dDoc.getElementsByTagName('dsp:spTree')[0];
-          if (dspTree) processElements(dspTree, stage, sldW, sldH, 0, 0);
-        }
-
-        if (diagramDrawings.length === 0 && diagramData.length > 0) {
-          for (const dataPath of diagramData) {
-            const dataXml = await zip.file(dataPath).async('text');
-            const dataDoc = domParser.parseFromString(dataXml, 'application/xml');
-            const pts = dataDoc.getElementsByTagName('dgm:pt');
-            const grid = document.createElement('div');
-            grid.className = 'ppt-smartart-fallback';
-            for (const pt of pts) {
-              const txt = pt.textContent.trim();
-              if (txt) {
-                const item = document.createElement('div');
-                item.className = 'ppt-smartart-node';
-                item.textContent = txt;
-                grid.appendChild(item);
-              }
-            }
-            if (grid.hasChildNodes()) stage.appendChild(grid);
-          }
-        }
-
-        card.appendChild(stage);
-        viewer.appendChild(card);
+      const paragraphs = doc.getElementsByTagName('text:p');
+      for (let p of paragraphs) {
+        const pElem = document.createElement('p');
+        pElem.textContent = p.textContent;
+        if (pElem.textContent.trim()) card.appendChild(pElem);
       }
+
+      viewer.appendChild(card);
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 10. SUPER MARIO MASTER ROUTER (EVERY STUDENT FORMAT)
+    // 5. MASTER ROUTER
     // ---------------------------------------------------------
-    const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico']);
-    const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']);
-    const VIDEO_EXTS = new Set(['mp4', 'webm', 'mkv', 'mov']);
-
-    async function renderFile(file, fromZip = false) {
+    async function renderFile(file) {
       if (!file) return;
-      if (!fromZip) btnBackZip.style.display = 'none';
-
-      cleanupMemory();
       zoomHud.style.display = 'none';
+      const name = file.name || 'Document';
+      showLoading(name);
 
-      const fileName = file.name || 'document';
-      updateTitle(fileName);
-      showLoading(fileName);
-
-      const ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
+      const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
       const mime = (file.type || '').toLowerCase();
 
       try {
-        if (ext === 'docx' || mime.includes('wordprocessingml')) {
+        if (ext === 'csv' || ext === 'tsv' || mime.includes('csv')) {
+          await renderCsv(file);
+        } else if (ext === 'pdf' || mime.includes('pdf')) {
+          await renderPdf(file);
+        } else if (ext === 'xlsx' || ext === 'xls' || ext === 'ods' || mime.includes('spreadsheet')) {
+          await renderExcel(file);
+        } else if (ext === 'docx' || mime.includes('wordprocessingml')) {
           viewer.innerHTML = '';
-          updateTitle(fileName, 'DOCX');
-          await docx.renderAsync(file, viewer, null, {
-            inWrapper: true,
-            ignoreWidth: false,
-            breakPages: true
-          });
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (
-          ext === 'xlsx' || ext === 'xls' || ext === 'csv' || ext === 'tsv' || ext === 'ods' || ext === 'dif' || ext === 'prn' ||
-          mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('csv')
-        ) {
-          const badge = (ext === 'csv' || ext === 'tsv' || ext === 'ods') ? ext.toUpperCase() : '';
-          await renderExcel(file, badge);
+          updateTitle(name, 'DOCX');
+          await docx.renderAsync(file, viewer, null, { inWrapper: true, breakPages: true });
           zoomHud.style.display = 'flex';
           fitDocumentToScreen();
         } else if (ext === 'odt' || mime.includes('opendocument.text')) {
-          await renderOdt(file, false);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'odp' || mime.includes('opendocument.presentation')) {
-          await renderOdt(file, true);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'pptx' || mime.includes('presentationml')) {
-          await renderPptx(file);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'pdf' || mime === 'application/pdf') {
-          await renderPdf(file);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'epub' || mime.includes('epub')) {
-          await renderEpub(file);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'ipynb') {
-          await renderNotebook(file);
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'zip' || mime.includes('zip')) {
-          await renderZipArchive(file);
-        } else if (IMAGE_EXTS.has(ext) || mime.startsWith('image/')) {
-          renderMedia(file, 'image');
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (AUDIO_EXTS.has(ext) || mime.startsWith('audio/')) {
-          renderMedia(file, 'audio');
-        } else if (VIDEO_EXTS.has(ext) || mime.startsWith('video/')) {
-          renderMedia(file, 'video');
+          await renderOdt(file);
         } else {
-          // Universal fallback: reads C++, Python, Java, SQL, Markdown, RTF, JSON, TXT, LaTeX, etc.
-          await renderTextOrCode(file, ext || 'TEXT');
+          // Code / Text Fallback
+          const text = await file.text();
+          updateTitle(name, ext.toUpperCase() || 'TXT');
+          viewer.innerHTML = `<pre class="code-card">${text.replace(/</g, '&lt;')}</pre>`;
           zoomHud.style.display = 'flex';
           fitDocumentToScreen();
         }
       } catch (err) {
-        showError(`Error rendering file: ${err.message}`);
+        showError('Error reading file: ' + err.message);
       } finally {
         fileInput.value = '';
       }
     }
 
     fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (file) renderFile(file);
+      if (e.target.files[0]) renderFile(e.target.files[0]);
     });
 
-    // Laptop Drag-and-Drop Support
-    window.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      container.classList.add('drag-over');
-    });
-    window.addEventListener('dragleave', () => {
-      container.classList.remove('drag-over');
-    });
-    window.addEventListener('drop', (e) => {
-      e.preventDefault();
-      container.classList.remove('drag-over');
-      if (e.dataTransfer?.files?.length) {
-        renderFile(e.dataTransfer.files[0]);
-      }
-    });
-
-    // Desktop PWA File Handling API Support
-    if ('launchQueue' in window) {
-      window.launchQueue.setConsumer(async (launchParams) => {
-        if (launchParams.files && launchParams.files.length > 0) {
-          const file = await launchParams.files[0].getFile();
-          renderFile(file);
-        }
-      });
-    }
-
-    // ---------------------------------------------------------
-    // NATIVE ANDROID APK BRIDGE (FOR DIRECT WHATSAPP FILE TAPS)
-    // ---------------------------------------------------------
+    // Native Android APK Bridge (WhatsApp open)
     window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
       try {
-        const binaryString = atob(base64Data);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
-        const file = new File([blob], fileName || 'whatsapp-document', {
-          type: mimeType || 'application/octet-stream'
-        });
+        const bin = atob(base64Data);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const file = new File([new Blob([bytes], { type: mimeType })], fileName, { type: mimeType });
         renderFile(file);
       } catch (err) {
-        showError('Failed to open file from WhatsApp: ' + err.message);
+        showError('Bridge error: ' + err.message);
       }
     };
   </script>
