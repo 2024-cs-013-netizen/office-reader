@@ -13,9 +13,9 @@
   <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
   <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-  <!-- PDF.js with direct bundled worker to prevent WebView CORS crashes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
     * { 
@@ -38,7 +38,6 @@
       user-select: none;
     }
 
-    /* HEADER */
     header { 
       padding: 10px 14px; 
       background: #1a1c29; 
@@ -56,11 +55,7 @@
       min-width: 0;
       flex: 1;
     }
-    header img {
-      width: 24px;
-      height: 24px;
-      flex-shrink: 0;
-    }
+    header img { width: 24px; height: 24px; flex-shrink: 0; }
     #doc-title { 
       font-size: 0.95rem; 
       font-weight: 600; 
@@ -76,17 +71,17 @@
       padding: 3px 8px;
       border-radius: 6px;
       font-weight: 600;
-      display: none;
+      display: inline-block;
       flex-shrink: 0;
     }
 
-    /* UPLOAD BAR */
     .upload-bar { 
       padding: 10px 14px; 
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
       background: #12141f;
       flex-shrink: 0;
       border-bottom: 1px solid #1e2130;
@@ -103,15 +98,18 @@
       align-items: center;
       gap: 8px;
       font-weight: 600;
+      border: none;
       box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
-      transition: transform 0.12s, background 0.2s;
     }
-    .btn:active { 
-      background: #4338ca; 
-      transform: scale(0.97);
+    .btn:active { background: #4338ca; transform: scale(0.97); }
+    .btn-secondary {
+      background: #25283a;
+      color: #82aaff;
+      box-shadow: none;
+      border: 1px solid #333852;
+      display: none;
     }
 
-    /* SCROLL CONTAINER */
     #viewer-container {
       flex: 1;
       width: 100%;
@@ -141,35 +139,39 @@
     #viewer { 
       background: transparent; 
       color: #000; 
-      padding: 0;
-      margin: 0;
       width: 100%;
       display: block;
     }
 
-    /* EMPTY STATE */
     .empty-state {
       color: #94a3b8;
       text-align: center;
-      margin: 60px auto 0 auto;
-      max-width: 320px;
+      margin: 50px auto 0 auto;
+      max-width: 350px;
       padding: 24px 16px;
       border: 1px dashed #2d3142;
       border-radius: 12px;
       background: #141724;
     }
-    .empty-state h2 {
-      font-size: 1rem;
-      color: #e2e8f0;
-      margin-bottom: 6px;
+    .empty-state h2 { font-size: 1.05rem; color: #e2e8f0; margin-bottom: 6px; }
+    .empty-state p { font-size: 0.82rem; line-height: 1.45; color: #94a3b8; }
+    .format-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 14px;
     }
-    .empty-state p {
-      font-size: 0.82rem;
-      line-height: 1.45;
-      color: #64748b;
+    .pill {
+      background: #1e2235;
+      color: #82aaff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #2d324a;
     }
 
-    /* FLOATING ZOOM BAR */
     #zoom-hud {
       position: fixed;
       bottom: 16px;
@@ -204,7 +206,6 @@
       text-align: center;
     }
 
-    /* LOADING & ERROR */
     .loader-box {
       display: flex;
       flex-direction: column;
@@ -224,7 +225,27 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; text-align: center; }
 
-    /* TABLES (EXCEL & CSV) */
+    /* WORD, ODT & MARKDOWN */
+    .docx-wrapper { background: transparent !important; padding: 0 !important; margin: 0 !important; display: block !important; }
+    .docx-wrapper > section.docx, .doc-paper { 
+      min-width: 650px !important; 
+      max-width: 840px;
+      padding: 28px 24px !important; 
+      margin: 0 auto 16px auto !important; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+      background: #ffffff !important;
+      color: #1e293b;
+      border-radius: 6px;
+      overflow-x: auto;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+    .doc-paper h1, .doc-paper h2, .doc-paper h3 { color: #0f172a; margin: 14px 0 8px 0; }
+    .doc-paper p { margin-bottom: 10px; }
+    .doc-paper ul, .doc-paper ol { margin: 8px 0 12px 24px; }
+    .doc-paper img { max-width: 100%; height: auto; margin: 8px 0; }
+
+    /* EXCEL, CSV, TSV, ODS TABLES */
     .excel-container {
       background: #ffffff;
       border-radius: 8px;
@@ -263,37 +284,10 @@
       text-align: left; 
       color: #1e293b;
     }
-    th { background: #f1f5f9; font-weight: 600; }
+    th { background: #f1f5f9; font-weight: 700; color: #0f172a; }
+    tr:nth-child(even) td { background: #f8fafc; }
 
-    /* PDF CANVAS CARDS */
-    .pdf-page-card {
-      background: #ffffff;
-      border-radius: 6px;
-      margin: 0 auto 18px auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-      overflow: hidden;
-      width: max-content;
-    }
-    .pdf-page-card canvas { display: block; }
-
-    /* WORD & ODT WRAPPER */
-    .docx-wrapper { background: transparent !important; padding: 0 !important; margin: 0 !important; }
-    .docx-wrapper > section.docx, .odt-card { 
-      min-width: 650px !important; 
-      max-width: 820px;
-      padding: 28px 24px !important; 
-      margin: 0 auto 16px auto !important; 
-      background: #ffffff !important;
-      color: #1e293b;
-      border-radius: 6px;
-      line-height: 1.6;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
-    .odt-card h1, .odt-card h2, .odt-card h3 { color: #0f172a; margin: 12px 0 6px 0; }
-    .odt-card p { margin-bottom: 8px; }
-    .odt-card ul { margin: 6px 0 10px 20px; }
-
-    /* PPTX CARDS */
+    /* PPTX */
     .ppt-slide-card {
       background: #181a24;
       border-radius: 10px;
@@ -308,6 +302,7 @@
       padding: 7px 14px;
       font-size: 0.75rem;
       font-weight: 600;
+      text-transform: uppercase;
       display: flex;
       justify-content: space-between;
       border-bottom: 1px solid #282c3f;
@@ -316,27 +311,115 @@
     .ppt-stage {
       position: relative;
       width: 100%;
+      container-type: inline-size;
       background: #ffffff;
       border-radius: 0 0 10px 10px;
       overflow: hidden;
     }
-    .ppt-shape { position: absolute; padding: 4px 8px; }
-    .ppt-pic { position: absolute; object-fit: contain; }
-
-    /* CODE & PLAIN TEXT */
-    .code-card {
-      background: #181a26;
-      border: 1px solid #282c3f;
-      border-radius: 8px;
-      padding: 16px;
-      color: #abb2bf;
-      font-family: Consolas, monospace;
-      font-size: 0.85rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
+    .ppt-shape {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      padding: 4px 8px;
       word-break: break-word;
+    }
+    .ppt-pic { position: absolute; object-fit: contain; }
+    .ppt-table-box { position: absolute; overflow: auto; }
+    .ppt-smartart-fallback {
+      position: absolute;
+      inset: 18% 6% 8% 6%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 10px;
+    }
+    .ppt-smartart-node {
+      background: #eff6ff;
+      border: 1.5px solid #3b82f6;
+      color: #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* PDF */
+    .pdf-page-card {
+      background: #ffffff;
+      border-radius: 8px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      width: max-content;
+      overflow: hidden;
+    }
+    .pdf-page-card canvas { display: block; }
+
+    /* CODE & TEXT */
+    .code-container {
+      background: #1e222a;
+      border: 1px solid #333842;
+      border-radius: 8px;
+      overflow: hidden;
       min-width: 100%;
     }
+    .code-header {
+      background: #161920;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #333842;
+      color: #94a3b8;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .copy-btn {
+      background: #333842;
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .code-body {
+      padding: 14px;
+      overflow-x: auto;
+      font-family: Consolas, monospace;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #e2e8f0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* ZIP EXPLORER */
+    .zip-container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #181a26;
+      border: 1px solid #2d3142;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .zip-header {
+      background: #202334;
+      padding: 12px 16px;
+      color: #82aaff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #2d3142;
+    }
+    .zip-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid #222638;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .zip-item:active { background: #282c42; }
   </style>
 </head>
 <body>
@@ -346,11 +429,12 @@
       <img src="icon.svg" alt="App Logo">
       <h1 id="doc-title">Reader</h1>
     </div>
-    <span id="doc-badge"></span>
+    <span id="doc-badge">v3.0</span>
   </header>
 
   <div class="upload-bar">
-    <label for="fileInput" class="btn">Open Any File</label>
+    <button id="btn-back-zip" class="btn btn-secondary">⬅ Back to ZIP</button>
+    <label for="fileInput" class="btn">Open Any Student File</label>
     <input type="file" id="fileInput" accept="*/*">
   </div>
 
@@ -359,8 +443,15 @@
       <div id="zoom-wrapper">
         <div id="viewer">
           <div class="empty-state">
-            <h2>Ready to Read</h2>
-            <p>Select any PDF, CSV, Excel, Word, ODT, PowerPoint, or Code file to read it immediately.</p>
+            <h2>Reader v3.0 Ready</h2>
+            <p>Tap above to open any CSV, PDF, ODT, Word, Excel, Slides, ZIP, or Code file.</p>
+            <div class="format-pills">
+              <span class="pill">CSV / XLSX / ODS</span>
+              <span class="pill">PDF / EPUB</span>
+              <span class="pill">DOCX / ODT / RTF</span>
+              <span class="pill">PPTX / ODP</span>
+              <span class="pill">C++ / PY / IPYNB / ZIP</span>
+            </div>
           </div>
         </div>
       </div>
@@ -375,6 +466,17 @@
   </div>
 
   <script>
+    // Force Service Worker update check on every launch
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then((reg) => {
+        reg.update();
+      }).catch(() => {});
+    }
+
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    }
+
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
     const container = document.getElementById('viewer-container');
@@ -384,17 +486,30 @@
     const docBadge = document.getElementById('doc-badge');
     const zoomHud = document.getElementById('zoom-hud');
     const zoomLabel = document.getElementById('zoom-label');
+    const btnBackZip = document.getElementById('btn-back-zip');
 
-    let scale = 1.0;
-    let fitScale = 1.0;
+    let activeObjectUrls = [];
+    let lastZipFile = null;
 
-    function updateTitle(name, badgeText = '') {
+    btnBackZip.addEventListener('click', () => {
+      if (lastZipFile) {
+        btnBackZip.style.display = 'none';
+        renderFile(lastZipFile);
+      }
+    });
+
+    function cleanupMemory() {
+      activeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
+      activeObjectUrls = [];
+    }
+
+    function updateTitle(name, badgeText = 'v3.0') {
       if (name) {
         docTitle.textContent = name;
         document.title = `${name} - Reader`;
       }
       docBadge.textContent = badgeText;
-      docBadge.style.display = badgeText ? 'inline-block' : 'none';
+      docBadge.style.display = 'inline-block';
     }
 
     function showLoading(fileName) {
@@ -406,8 +521,31 @@
     }
 
     function showError(msg) {
-      viewer.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:60px; padding:0 20px;">${msg}</p>`;
+      viewer.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:60px; padding:0 20px; font-size:0.9rem;">${msg}</p>`;
     }
+
+    function isDarkColor(hex) {
+      if (!hex || !hex.startsWith('#')) return false;
+      let c = hex.substring(1);
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const rgb = parseInt(c, 16);
+      if (isNaN(rgb)) return false;
+      const r = (rgb >> 16) & 0xff;
+      const g = (rgb >> 8) & 0xff;
+      const b = (rgb >> 0) & 0xff;
+      return (0.299 * r + 0.587 * g + 0.114 * b) < 138;
+    }
+
+    // ---------------------------------------------------------
+    // PINCH-TO-ZOOM & AUTO-FIT ENGINE
+    // ---------------------------------------------------------
+    let scale = 1.0;
+    let fitScale = 1.0;
+    let initialDist = 0;
+    let initialScale = 1.0;
+    let isPinching = false;
+    let touchMoved = false;
+    let lastTap = 0;
 
     function applyZoom(newScale) {
       scale = Math.min(Math.max(newScale, 0.35), 3.5);
@@ -415,11 +553,11 @@
       zoomLabel.textContent = `${Math.round(scale * 100)}%`;
 
       requestAnimationFrame(() => {
-        const w = zoomWrapper.offsetWidth;
-        const h = zoomWrapper.offsetHeight;
-        if (w && h) {
-          zoomSizer.style.width = `${Math.ceil(w * scale)}px`;
-          zoomSizer.style.height = `${Math.ceil(h * scale)}px`;
+        const naturalW = zoomWrapper.offsetWidth;
+        const naturalH = zoomWrapper.offsetHeight;
+        if (naturalW && naturalH) {
+          zoomSizer.style.width = `${Math.ceil(naturalW * scale)}px`;
+          zoomSizer.style.height = `${Math.ceil(naturalH * scale)}px`;
         }
       });
     }
@@ -443,82 +581,164 @@
     document.getElementById('btn-zoom-out').addEventListener('click', () => applyZoom(scale - 0.2));
     zoomLabel.addEventListener('click', () => applyZoom(1.0));
 
-    // ---------------------------------------------------------
-    // 1. DEDICATED BULLETPROOF CSV / TSV PARSER
-    // ---------------------------------------------------------
-    async function renderCsv(file) {
-      const text = await file.text();
-      updateTitle(file.name, 'CSV');
-      viewer.innerHTML = '';
+    function getDistance(touches) {
+      return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
+    }
 
-      const lines = text.split(/\r\n|\n|\r/);
-      if (!lines.length || (lines.length === 1 && !lines[0].trim())) {
+    container.addEventListener('touchstart', (e) => {
+      touchMoved = false;
+      if (e.touches.length === 2) {
+        isPinching = true;
+        initialDist = getDistance(e.touches);
+        initialScale = scale;
+      }
+    }, { passive: true });
+
+    container.addEventListener('touchmove', (e) => {
+      if (e.touches.length === 2 && initialDist > 0) {
+        e.preventDefault();
+        applyZoom(initialScale * (getDistance(e.touches) / initialDist));
+      } else if (e.touches.length === 1) {
+        touchMoved = true;
+      }
+    }, { passive: false });
+
+    container.addEventListener('touchend', (e) => {
+      if (e.touches.length < 2) initialDist = 0;
+      if (isPinching) {
+        if (e.touches.length === 0) { isPinching = false; lastTap = 0; }
+        return;
+      }
+      if (touchMoved) { lastTap = 0; return; }
+      if (e.touches.length === 0) {
+        const now = Date.now();
+        if (now - lastTap < 300) {
+          applyZoom(Math.abs(scale - fitScale) < 0.08 ? 1.0 : fitScale);
+          lastTap = 0;
+        } else {
+          lastTap = now;
+        }
+      }
+    });
+
+    // ---------------------------------------------------------
+    // 1. BULLETPROOF CSV / TSV PARSER (SUPPORTS ALL DELIMITERS)
+    // ---------------------------------------------------------
+    function parseDelimitedText(text, delimiter = ',') {
+      const rows = [];
+      let currentRow = [];
+      let currentVal = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (ch === '"' && next === '"') {
+            currentVal += '"';
+            i++;
+          } else if (ch === '"') {
+            inQuotes = false;
+          } else {
+            currentVal += ch;
+          }
+        } else {
+          if (ch === '"') {
+            inQuotes = true;
+          } else if (ch === delimiter) {
+            currentRow.push(currentVal);
+            currentVal = '';
+          } else if (ch === '\r' && next === '\n') {
+            currentRow.push(currentVal);
+            if (currentRow.length > 1 || currentRow[0] !== '') rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+            i++;
+          } else if (ch === '\n' || ch === '\r') {
+            currentRow.push(currentVal);
+            if (currentRow.length > 1 || currentRow[0] !== '') rows.push(currentRow);
+            currentRow = [];
+            currentVal = '';
+          } else {
+            currentVal += ch;
+          }
+        }
+      }
+      if (currentVal !== '' || currentRow.length > 0) {
+        currentRow.push(currentVal);
+        rows.push(currentRow);
+      }
+      return rows;
+    }
+
+    async function renderCsv(file) {
+      let text = await file.text();
+      // Strip UTF-8 BOM if present
+      if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+
+      const firstLine = text.split(/\r?\n/)[0] || '';
+      let delimiter = ',';
+      if (firstLine.split('\t').length > firstLine.split(',').length) delimiter = '\t';
+      else if (firstLine.split(';').length > firstLine.split(',').length) delimiter = ';';
+
+      const rows = parseDelimitedText(text, delimiter);
+      if (rows.length === 0) {
         showError('This CSV file is empty.');
         return;
       }
 
+      updateTitle(file.name, `CSV (${rows.length} Rows)`);
+      viewer.innerHTML = '';
+
       const excelBox = document.createElement('div');
       excelBox.className = 'excel-container';
-      const wrapper = document.createElement('div');
-      wrapper.className = 'table-wrapper';
+      const tableWrapper = document.createElement('div');
+      tableWrapper.className = 'table-wrapper';
       const table = document.createElement('table');
 
-      lines.forEach((line, rIndex) => {
-        if (!line.trim()) return;
-        const tr = document.createElement('tr');
-        // Handle comma separation and quoted commas
-        const regex = /(?:,|\n|^)("(?:(?:"")*[^"]*)*"|[^",\n]*|(?:\n|$))/g;
-        let match;
-        let cells = [];
-        while ((match = regex.exec(line))) {
-          let val = match[1] || '';
-          if (val.startsWith('"') && val.endsWith('"')) {
-            val = val.substring(1, val.length - 1).replace(/""/g, '"');
-          }
-          cells.push(val);
-          if (regex.lastIndex >= line.length) break;
-        }
+      const maxCols = rows.reduce((max, r) => Math.max(max, r.length), 0);
 
-        cells.forEach(c => {
-          const cellElem = document.createElement(rIndex === 0 ? 'th' : 'td');
-          cellElem.textContent = c.trim();
-          tr.appendChild(cellElem);
-        });
+      rows.forEach((row, rIdx) => {
+        const tr = document.createElement('tr');
+        for (let c = 0; c < maxCols; c++) {
+          const cell = document.createElement(rIdx === 0 ? 'th' : 'td');
+          cell.textContent = row[c] !== undefined ? row[c].trim() : '';
+          tr.appendChild(cell);
+        }
         table.appendChild(tr);
       });
 
-      wrapper.appendChild(table);
-      excelBox.appendChild(wrapper);
+      tableWrapper.appendChild(table);
+      excelBox.appendChild(tableWrapper);
       viewer.appendChild(excelBox);
       zoomHud.style.display = 'flex';
       fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 2. INLINE-SAFE PDF ENGINE
+    // 2. BULLETPROOF PDF ENGINE
     // ---------------------------------------------------------
     async function renderPdf(file) {
       viewer.innerHTML = '';
       if (!window.pdfjsLib) {
-        showError('PDF engine could not initialize. Please reconnect to internet.');
+        showError('PDF library failed to load. Please check your internet connection.');
         return;
       }
 
-      const buffer = await file.arrayBuffer();
-      // Disable remote worker requests so WebView executes on the bundled worker
-      const pdf = await pdfjsLib.getDocument({
-        data: buffer,
-        disableFontFace: false
-      }).promise;
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      const pdf = await window.pdfjsLib.getDocument({ data: uint8 }).promise;
 
-      updateTitle(file.name, `${pdf.numPages} Page${pdf.numPages > 1 ? 's' : ''}`);
+      updateTitle(file.name, `PDF (${pdf.numPages} Pages)`);
 
-      for (let i = 1; i <= pdf.numPages; i++) {
-        const page = await pdf.getPage(i);
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
         const viewport = page.getViewport({ scale: 1.5 });
 
         const card = document.createElement('div');
         card.className = 'pdf-page-card';
+
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         canvas.width = viewport.width;
@@ -527,7 +747,7 @@
         card.appendChild(canvas);
         viewer.appendChild(card);
 
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport }).promise;
       }
 
       zoomHud.style.display = 'flex';
@@ -535,13 +755,18 @@
     }
 
     // ---------------------------------------------------------
-    // 3. EXCEL ENGINE (.XLSX, .XLS, .ODS)
+    // 3. MULTI-SHEET EXCEL & ODS ENGINE
     // ---------------------------------------------------------
     async function renderExcel(file) {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
+      const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
       
-      updateTitle(file.name, `${workbook.SheetNames.length} Sheets`);
+      if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+        showError('This spreadsheet is empty.');
+        return;
+      }
+
+      updateTitle(file.name, `${workbook.SheetNames.length} Sheet${workbook.SheetNames.length > 1 ? 's' : ''}`);
       viewer.innerHTML = '';
 
       const excelBox = document.createElement('div');
@@ -551,16 +776,16 @@
       const tableContent = document.createElement('div');
       tableContent.className = 'table-wrapper';
 
-      workbook.SheetNames.forEach((name, index) => {
+      workbook.SheetNames.forEach((sheetName, index) => {
         const btn = document.createElement('button');
         btn.className = `sheet-tab ${index === 0 ? 'active' : ''}`;
-        btn.textContent = name;
-        btn.onclick = () => {
-          excelBox.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+        btn.textContent = sheetName;
+        btn.addEventListener('click', () => {
+          excelBox.querySelectorAll('.sheet-tab').forEach((t) => t.classList.remove('active'));
           btn.classList.add('active');
-          tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[name]);
+          tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[sheetName]);
           fitDocumentToScreen();
-        };
+        });
         tabsBar.appendChild(btn);
       });
 
@@ -573,71 +798,419 @@
     }
 
     // ---------------------------------------------------------
-    // 4. ODT ENGINE
+    // 4. ODT & ODP ENGINE
     // ---------------------------------------------------------
-    async function renderOdt(file) {
+    async function renderOdt(file, isPresentation = false) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
       if (!zip.file('content.xml')) {
-        showError('Invalid ODT file.');
+        showError('Invalid OpenDocument file.');
         return;
       }
-      const xmlStr = await zip.file('content.xml').async('text');
-      const doc = new DOMParser().parseFromString(xmlStr, 'application/xml');
 
-      updateTitle(file.name, 'ODT');
-      const card = document.createElement('div');
-      card.className = 'odt-card';
+      const contentXml = await zip.file('content.xml').async('text');
+      const xmlDoc = new DOMParser().parseFromString(contentXml, 'application/xml');
 
-      const paragraphs = doc.getElementsByTagName('text:p');
-      for (let p of paragraphs) {
-        const pElem = document.createElement('p');
-        pElem.textContent = p.textContent;
-        if (pElem.textContent.trim()) card.appendChild(pElem);
+      const imgMap = {};
+      for (const path of Object.keys(zip.files)) {
+        if (path.startsWith('Pictures/') || path.startsWith('media/')) {
+          const blob = await zip.file(path).async('blob');
+          const url = URL.createObjectURL(blob);
+          activeObjectUrls.push(url);
+          imgMap[path] = url;
+        }
       }
 
-      viewer.appendChild(card);
+      function convertNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue);
+        if (node.nodeType !== Node.ELEMENT_NODE) return null;
+        const tag = node.tagName;
+
+        if (tag === 'text:h') {
+          const h = document.createElement('h2');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) h.appendChild(c); }
+          return h;
+        }
+        if (tag === 'text:p') {
+          const p = document.createElement('p');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) p.appendChild(c); }
+          return p;
+        }
+        if (tag === 'text:list') {
+          const ul = document.createElement('ul');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) ul.appendChild(c); }
+          return ul;
+        }
+        if (tag === 'text:list-item') {
+          const li = document.createElement('li');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) li.appendChild(c); }
+          return li;
+        }
+        if (tag === 'table:table') {
+          const tbl = document.createElement('table');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) tbl.appendChild(c); }
+          return tbl;
+        }
+        if (tag === 'table:table-row') {
+          const tr = document.createElement('tr');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) tr.appendChild(c); }
+          return tr;
+        }
+        if (tag === 'table:table-cell') {
+          const td = document.createElement('td');
+          for (const ch of node.childNodes) { const c = convertNode(ch); if (c) td.appendChild(c); }
+          return td;
+        }
+        if (tag === 'draw:image') {
+          const href = node.getAttribute('xlink:href') || '';
+          if (imgMap[href]) {
+            const img = document.createElement('img');
+            img.src = imgMap[href];
+            return img;
+          }
+        }
+        const frag = document.createDocumentFragment();
+        for (const ch of node.childNodes) { const c = convertNode(ch); if (c) frag.appendChild(c); }
+        return frag;
+      }
+
+      updateTitle(file.name, isPresentation ? 'ODP' : 'ODT');
+      const page = document.createElement('div');
+      page.className = 'doc-paper';
+      const bodyNode = xmlDoc.getElementsByTagName('office:text')[0] || xmlDoc.documentElement;
+      page.appendChild(convertNode(bodyNode));
+      viewer.appendChild(page);
       zoomHud.style.display = 'flex';
       fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
-    // 5. MASTER ROUTER
+    // 5. POWERPOINT (PPTX) ENGINE
     // ---------------------------------------------------------
-    async function renderFile(file) {
-      if (!file) return;
-      zoomHud.style.display = 'none';
-      const name = file.name || 'Document';
-      showLoading(name);
+    async function renderPptx(file) {
+      viewer.innerHTML = '';
+      const zip = await JSZip.loadAsync(file);
+      const domParser = new DOMParser();
 
-      const ext = name.includes('.') ? name.split('.').pop().toLowerCase() : '';
+      let sldW = 12192000;
+      let sldH = 6858000;
+      if (zip.file('ppt/presentation.xml')) {
+        const presXml = await zip.file('ppt/presentation.xml').async('text');
+        const presDoc = domParser.parseFromString(presXml, 'application/xml');
+        const sldSz = presDoc.getElementsByTagName('p:sldSz')[0];
+        if (sldSz) {
+          sldW = parseInt(sldSz.getAttribute('cx'), 10) || sldW;
+          sldH = parseInt(sldSz.getAttribute('cy'), 10) || sldH;
+        }
+      }
+
+      const themeColors = {
+        'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
+        'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
+        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c',
+        'tx1': '#111827', 'tx2': '#374151', 'bg1': '#ffffff', 'bg2': '#f3f4f6'
+      };
+
+      function resolveColor(elem) {
+        if (!elem) return null;
+        const srgb = elem.getElementsByTagName('a:srgbClr')[0];
+        if (srgb) return '#' + srgb.getAttribute('val');
+        const scheme = elem.getElementsByTagName('a:schemeClr')[0];
+        if (scheme) return themeColors[scheme.getAttribute('val')] || null;
+        return null;
+      }
+
+      const slidePaths = [];
+      zip.forEach((path) => {
+        if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
+      });
+      slidePaths.sort((a, b) => parseInt(a.match(/slide(\d+)\.xml/i)[1], 10) - parseInt(b.match(/slide(\d+)\.xml/i)[1], 10));
+
+      updateTitle(file.name, `${slidePaths.length} Slides`);
+
+      for (let i = 0; i < slidePaths.length; i++) {
+        const path = slidePaths[i];
+        const slideXmlStr = await zip.file(path).async('text');
+        const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
+
+        const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
+        const imgMap = {};
+        if (zip.file(relsPath)) {
+          const relsXml = await zip.file(relsPath).async('text');
+          const relsDoc = domParser.parseFromString(relsXml, 'application/xml');
+          for (const rel of relsDoc.getElementsByTagName('Relationship')) {
+            const rId = rel.getAttribute('Id');
+            const target = rel.getAttribute('Target') || '';
+            const cleanPath = 'ppt/' + target.replace(/^(\.\.\/)+/, '');
+            if (target.includes('media/') && zip.file(cleanPath)) {
+              const blob = await zip.file(cleanPath).async('blob');
+              const objUrl = URL.createObjectURL(blob);
+              activeObjectUrls.push(objUrl);
+              imgMap[rId] = objUrl;
+            }
+          }
+        }
+
+        const card = document.createElement('div');
+        card.className = 'ppt-slide-card';
+        const header = document.createElement('div');
+        header.className = 'ppt-slide-header';
+        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Total</span>`;
+        card.appendChild(header);
+
+        const stage = document.createElement('div');
+        stage.className = 'ppt-stage';
+        stage.style.aspectRatio = `${sldW} / ${sldH}`;
+
+        const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
+        if (spTree) {
+          for (const node of spTree.children) {
+            if (node.tagName === 'p:sp') {
+              const spPr = node.getElementsByTagName('p:spPr')[0];
+              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
+              const off = xfrm?.getElementsByTagName('a:off')[0];
+              const ext = xfrm?.getElementsByTagName('a:ext')[0];
+              let pos = (off && ext) ? {
+                x: parseInt(off.getAttribute('x'), 10),
+                y: parseInt(off.getAttribute('y'), 10),
+                cx: parseInt(ext.getAttribute('cx'), 10),
+                cy: parseInt(ext.getAttribute('cy'), 10)
+              } : { x: sldW * 0.05, y: sldH * 0.15, cx: sldW * 0.9, cy: sldH * 0.75 };
+
+              const shapeDiv = document.createElement('div');
+              shapeDiv.className = 'ppt-shape';
+              shapeDiv.style.left = `${(pos.x / sldW) * 100}%`;
+              shapeDiv.style.top = `${(pos.y / sldH) * 100}%`;
+              shapeDiv.style.width = `${(pos.cx / sldW) * 100}%`;
+
+              const txBody = node.getElementsByTagName('p:txBody')[0];
+              if (txBody) {
+                for (const p of txBody.getElementsByTagName('a:p')) {
+                  const pDiv = document.createElement('div');
+                  pDiv.style.marginBottom = '4px';
+                  pDiv.style.color = '#111827';
+                  pDiv.style.fontSize = '15px';
+                  pDiv.textContent = p.textContent;
+                  if (pDiv.textContent.trim()) shapeDiv.appendChild(pDiv);
+                }
+              }
+              stage.appendChild(shapeDiv);
+            } else if (node.tagName === 'p:pic') {
+              const xfrm = node.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
+              const blip = node.getElementsByTagName('a:blip')[0];
+              const rId = blip?.getAttribute('r:embed') || blip?.getAttribute('embed');
+              const off = xfrm?.getElementsByTagName('a:off')[0];
+              const ext = xfrm?.getElementsByTagName('a:ext')[0];
+              if (rId && imgMap[rId] && off && ext) {
+                const img = document.createElement('img');
+                img.src = imgMap[rId];
+                img.className = 'ppt-pic';
+                img.style.left = `${(parseInt(off.getAttribute('x'), 10) / sldW) * 100}%`;
+                img.style.top = `${(parseInt(off.getAttribute('y'), 10) / sldH) * 100}%`;
+                img.style.width = `${(parseInt(ext.getAttribute('cx'), 10) / sldW) * 100}%`;
+                img.style.height = `${(parseInt(ext.getAttribute('cy'), 10) / sldH) * 100}%`;
+                stage.appendChild(img);
+              }
+            }
+          }
+        }
+
+        card.appendChild(stage);
+        viewer.appendChild(card);
+      }
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
+    }
+
+    // ---------------------------------------------------------
+    // 6. ZIP ARCHIVE EXPLORER
+    // ---------------------------------------------------------
+    async function renderZipArchive(file) {
+      lastZipFile = file;
+      btnBackZip.style.display = 'none';
+      viewer.innerHTML = '';
+
+      const zip = await JSZip.loadAsync(file);
+      const entries = [];
+      zip.forEach((relPath, entry) => { if (!entry.dir) entries.push(entry); });
+
+      updateTitle(file.name, `ZIP (${entries.length} Files)`);
+      const box = document.createElement('div');
+      box.className = 'zip-container';
+      box.innerHTML = `<div class="zip-header">📦 Tap any file inside ${file.name} to open:</div>`;
+
+      for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'zip-item';
+        row.innerHTML = `<span>📄 ${entry.name}</span><span style="color:#82aaff;">Open ➔</span>`;
+        row.addEventListener('click', async () => {
+          showLoading(entry.name);
+          const blob = await entry.async('blob');
+          const subFile = new File([blob], entry.name.split('/').pop());
+          btnBackZip.style.display = 'inline-flex';
+          renderFile(subFile, true);
+        });
+        box.appendChild(row);
+      }
+      viewer.appendChild(box);
+    }
+
+    // ---------------------------------------------------------
+    // 7. CODE, MARKDOWN & TEXT RENDERER
+    // ---------------------------------------------------------
+    async function renderTextOrCode(file, ext) {
+      const text = await file.text();
+
+      if ((ext === 'md' || ext === 'markdown') && window.marked) {
+        updateTitle(file.name, 'MARKDOWN');
+        viewer.innerHTML = `<div class="doc-paper">${marked.parse(text)}</div>`;
+        zoomHud.style.display = 'flex';
+        fitDocumentToScreen();
+        return;
+      }
+
+      updateTitle(file.name, ext.toUpperCase() || 'TEXT');
+      viewer.innerHTML = '';
+
+      const box = document.createElement('div');
+      box.className = 'code-container';
+      const hdr = document.createElement('div');
+      hdr.className = 'code-header';
+      hdr.innerHTML = `<span>${file.name}</span>`;
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = () => {
+        navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(() => copyBtn.textContent = 'Copy', 1500);
+      };
+      hdr.appendChild(copyBtn);
+
+      const pre = document.createElement('pre');
+      pre.className = 'code-body';
+      pre.textContent = text || '(Empty file)';
+      box.appendChild(hdr);
+      box.appendChild(pre);
+      viewer.appendChild(box);
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
+    }
+
+    // ---------------------------------------------------------
+    // 8. SMART BYTE-SNIFFING ROUTER (NEVER FAILS ON HIDDEN EXTENSIONS)
+    // ---------------------------------------------------------
+    async function renderFile(file, fromZip = false) {
+      if (!file) return;
+      if (!fromZip) btnBackZip.style.display = 'none';
+
+      cleanupMemory();
+      zoomHud.style.display = 'none';
+
+      const fileName = file.name || 'Document';
+      updateTitle(fileName);
+      showLoading(fileName);
+
+      const ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
       const mime = (file.type || '').toLowerCase();
 
       try {
-        if (ext === 'csv' || ext === 'tsv' || mime.includes('csv')) {
-          await renderCsv(file);
-        } else if (ext === 'pdf' || mime.includes('pdf')) {
+        // Read first 4 magic bytes to identify disguised files from Android/WhatsApp
+        const headerSlice = await file.slice(0, 4).arrayBuffer();
+        const headerBytes = new Uint8Array(headerSlice);
+        const isPdfMagic = (headerBytes[0] === 0x25 && headerBytes[1] === 0x50 && headerBytes[2] === 0x44 && headerBytes[3] === 0x46); // %PDF
+        const isZipMagic = (headerBytes[0] === 0x50 && headerBytes[1] === 0x4B); // PK..
+
+        // 1. Check PDF first (by extension, MIME, or %PDF magic bytes)
+        if (ext === 'pdf' || mime.includes('pdf') || isPdfMagic) {
           await renderPdf(file);
-        } else if (ext === 'xlsx' || ext === 'xls' || ext === 'ods' || mime.includes('spreadsheet')) {
-          await renderExcel(file);
-        } else if (ext === 'docx' || mime.includes('wordprocessingml')) {
-          viewer.innerHTML = '';
-          updateTitle(name, 'DOCX');
-          await docx.renderAsync(file, viewer, null, { inWrapper: true, breakPages: true });
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
-        } else if (ext === 'odt' || mime.includes('opendocument.text')) {
-          await renderOdt(file);
-        } else {
-          // Code / Text Fallback
-          const text = await file.text();
-          updateTitle(name, ext.toUpperCase() || 'TXT');
-          viewer.innerHTML = `<pre class="code-card">${text.replace(/</g, '&lt;')}</pre>`;
-          zoomHud.style.display = 'flex';
-          fitDocumentToScreen();
+          return;
         }
+
+        // 2. Check CSV / TSV explicitly before Excel
+        if (ext === 'csv' || ext === 'tsv' || mime.includes('csv') || mime.includes('comma-separated')) {
+          await renderCsv(file);
+          return;
+        }
+
+        // 3. If it's a ZIP container (DOCX, XLSX, PPTX, ODT, ODS, ODP, or ZIP)
+        if (isZipMagic) {
+          if (ext === 'docx' || mime.includes('wordprocessingml')) {
+            viewer.innerHTML = '';
+            updateTitle(fileName, 'DOCX');
+            await docx.renderAsync(file, viewer, null, { inWrapper: true, breakPages: true });
+            zoomHud.style.display = 'flex';
+            fitDocumentToScreen();
+            return;
+          }
+          if (ext === 'xlsx' || ext === 'ods' || mime.includes('spreadsheet')) {
+            await renderExcel(file);
+            return;
+          }
+          if (ext === 'pptx' || mime.includes('presentationml')) {
+            await renderPptx(file);
+            return;
+          }
+          if (ext === 'odt' || mime.includes('opendocument.text')) {
+            await renderOdt(file, false);
+            return;
+          }
+          if (ext === 'odp' || mime.includes('opendocument.presentation')) {
+            await renderOdt(file, true);
+            return;
+          }
+
+          // Inspect inside the ZIP if Android hid the file extension
+          const zipCheck = await JSZip.loadAsync(file);
+          if (zipCheck.file('word/document.xml')) {
+            viewer.innerHTML = '';
+            updateTitle(fileName, 'DOCX');
+            await docx.renderAsync(file, viewer, null, { inWrapper: true, breakPages: true });
+            zoomHud.style.display = 'flex';
+            fitDocumentToScreen();
+            return;
+          }
+          if (zipCheck.file('xl/workbook.xml')) {
+            await renderExcel(file);
+            return;
+          }
+          if (zipCheck.file('ppt/presentation.xml')) {
+            await renderPptx(file);
+            return;
+          }
+          if (zipCheck.file('content.xml')) {
+            await renderOdt(file, false);
+            return;
+          }
+
+          await renderZipArchive(file);
+          return;
+        }
+
+        // 4. Legacy .xls spreadsheet
+        if (ext === 'xls' || mime.includes('excel')) {
+          await renderExcel(file);
+          return;
+        }
+
+        // 5. Check if plain text file is actually a CSV disguised without an extension
+        const sampleText = await file.slice(0, 1024).text();
+        const sampleLines = sampleText.trim().split(/\r?\n/);
+        if (
+          sampleLines.length >= 2 &&
+          sampleLines[0].includes(',') &&
+          sampleLines[0].split(',').length === sampleLines[1].split(',').length &&
+          sampleLines[0].split(',').length >= 2
+        ) {
+          await renderCsv(file);
+          return;
+        }
+
+        // 6. Universal fallback: Code, Markdown, JSON, TXT
+        await renderTextOrCode(file, ext || 'TXT');
+
       } catch (err) {
-        showError('Error reading file: ' + err.message);
+        showError('Error opening file: ' + err.message);
       } finally {
         fileInput.value = '';
       }
@@ -647,16 +1220,19 @@
       if (e.target.files[0]) renderFile(e.target.files[0]);
     });
 
-    // Native Android APK Bridge (WhatsApp open)
+    // Native Android APK Bridge (WhatsApp direct tap)
     window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
       try {
-        const bin = atob(base64Data);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        const file = new File([new Blob([bytes], { type: mimeType })], fileName, { type: mimeType });
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
+        const file = new File([blob], fileName || 'document', { type: mimeType || 'application/octet-stream' });
         renderFile(file);
       } catch (err) {
-        showError('Bridge error: ' + err.message);
+        showError('Failed to load file from WhatsApp: ' + err.message);
       }
     };
   </script>
