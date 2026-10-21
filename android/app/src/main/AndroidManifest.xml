@@ -23,17 +23,24 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- UNIVERSAL WHATSAPP & FILE OPENER (OPENS EVERY FILE TYPE ON ANDROID) -->
+            <!-- Handles files opened from WhatsApp, File Managers, Downloads -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="content" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="file" />
                 <data android:mimeType="*/*" />
             </intent-filter>
 
-            <!-- UNIVERSAL WHATSAPP SHARE MENU -->
+            <!-- Handles files shared to the app -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
