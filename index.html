@@ -3,16 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Personal Document Reader</title>
+  <title>Reader</title>
   
   <link rel="icon" type="image/svg+xml" href="icon.svg">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0f111a">
 
-  <!-- Core Libraries -->
+  <!-- Core Document & Archive Engines -->
   <script src="https://unpkg.com/jszip/dist/jszip.min.js"></script>
   <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- One Dark Pro Syntax Highlighting for CS Students -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
   <style>
     * { 
@@ -77,13 +83,14 @@
       flex-shrink: 0;
     }
 
-    /* UPLOAD BAR */
+    /* UPLOAD & ACTION BAR */
     .upload-bar { 
       padding: 10px 14px; 
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
       background: #12141f;
       flex-shrink: 0;
       border-bottom: 1px solid #1e2130;
@@ -92,20 +99,28 @@
     .btn { 
       background: #4f46e5; 
       color: white; 
-      padding: 9px 20px; 
+      padding: 9px 18px; 
       border-radius: 8px; 
       cursor: pointer; 
-      font-size: 0.85rem; 
+      font-size: 0.84rem; 
       display: inline-flex;
       align-items: center;
       gap: 8px;
       font-weight: 600;
+      border: none;
       box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
       transition: transform 0.12s, background 0.2s;
     }
     .btn:active { 
       background: #4338ca; 
       transform: scale(0.97);
+    }
+    .btn-secondary {
+      background: #25283a;
+      color: #82aaff;
+      box-shadow: none;
+      border: 1px solid #333852;
+      display: none;
     }
 
     /* SCROLL CONTAINER */
@@ -127,7 +142,6 @@
       background: #141829;
     }
 
-    /* SIZER BOX PREVENTS GHOST SCROLLBARS WHEN SCALING */
     #zoom-sizer {
       position: relative;
       overflow: hidden;
@@ -154,22 +168,38 @@
     .empty-state {
       color: #94a3b8;
       text-align: center;
-      margin: 60px auto 0 auto;
-      max-width: 320px;
-      padding: 24px 16px;
+      margin: 50px auto 0 auto;
+      max-width: 360px;
+      padding: 24px 18px;
       border: 1px dashed #2d3142;
       border-radius: 12px;
       background: #141724;
     }
     .empty-state h2 {
-      font-size: 1rem;
+      font-size: 1.05rem;
       color: #e2e8f0;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
     .empty-state p {
       font-size: 0.82rem;
-      line-height: 1.45;
-      color: #64748b;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+    .format-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .pill {
+      background: #1e2235;
+      color: #82aaff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 6px;
+      border: 1px solid #2d324a;
     }
 
     /* FLOATING ZOOM BAR */
@@ -227,24 +257,38 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; text-align: center; }
 
-    /* WORD STYLING */
+    /* WORD, ODT, EPUB & MARKDOWN PAPER STYLING */
     .docx-wrapper { 
       background: transparent !important; 
       padding: 0 !important; 
       margin: 0 !important;
       display: block !important;
     }
-    .docx-wrapper > section.docx { 
+    .docx-wrapper > section.docx, .doc-paper { 
       min-width: 650px !important; 
+      max-width: 840px;
       padding: 28px 24px !important; 
-      margin: 0 0 16px 0 !important; 
+      margin: 0 auto 16px auto !important; 
       box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
       background: #ffffff !important;
-      border-radius: 6px;
+      color: #1e293b;
+      border-radius: 8px;
       overflow-x: auto;
+      line-height: 1.65;
+      font-size: 0.95rem;
     }
+    .doc-paper h1, .doc-paper h2, .doc-paper h3, .doc-paper h4 {
+      color: #0f172a;
+      margin: 16px 0 8px 0;
+    }
+    .doc-paper p { margin-bottom: 10px; }
+    .doc-paper ul, .doc-paper ol { margin: 8px 0 12px 24px; }
+    .doc-paper img { max-width: 100%; height: auto; margin: 10px 0; border-radius: 4px; }
+    .doc-paper pre { background: #1e293b; color: #f8fafc; padding: 12px; border-radius: 6px; overflow-x: auto; margin: 10px 0; }
+    .doc-paper code { font-family: monospace; background: #f1f5f9; padding: 2px 5px; border-radius: 4px; color: #0f172a; }
+    .doc-paper pre code { background: transparent; color: inherit; padding: 0; }
 
-    /* EXCEL STYLING WITH STICKY HEADERS & TABS */
+    /* EXCEL, CSV, TSV & ODS STYLING */
     .excel-container {
       background: #ffffff;
       border-radius: 8px;
@@ -299,7 +343,7 @@
     .ppt-slide-card {
       background: #181a24;
       border-radius: 10px;
-      margin: 0 0 24px 0;
+      margin: 0 auto 24px auto;
       box-shadow: 0 4px 18px rgba(0,0,0,0.35);
       width: 760px;
       border: 1px solid #282c3f;
@@ -364,6 +408,142 @@
       font-weight: 500;
       box-shadow: 0 2px 5px rgba(0,0,0,0.06);
     }
+
+    /* PDF STYLING */
+    .pdf-page-card {
+      background: #ffffff;
+      border-radius: 8px;
+      margin: 0 auto 20px auto;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+      width: max-content;
+      overflow: hidden;
+    }
+    .pdf-page-card canvas { display: block; }
+
+    /* ONE DARK PRO CODE VIEWER */
+    .code-container {
+      background: #282c34;
+      border: 1px solid #3e4451;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 100%;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+    }
+    .code-header {
+      background: #21252b;
+      padding: 8px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #3e4451;
+      color: #abb2bf;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .copy-btn {
+      background: #3a3f4b;
+      color: #e2e8f0;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 5px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .copy-btn:active { background: #4f46e5; }
+    .code-body {
+      padding: 14px;
+      overflow-x: auto;
+      font-family: "JetBrains Mono", "Fira Code", Consolas, monospace;
+      font-size: 0.84rem;
+      line-height: 1.55;
+      color: #abb2bf;
+      white-space: pre;
+    }
+
+    /* JUPYTER NOTEBOOK (.IPYNB) STYLING */
+    .ipynb-container {
+      max-width: 860px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .ipynb-cell {
+      background: #1a1c29;
+      border: 1px solid #2d3142;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .ipynb-md {
+      background: #ffffff;
+      color: #1e293b;
+      padding: 18px 20px;
+      line-height: 1.6;
+    }
+    .ipynb-code-hdr {
+      background: #21252b;
+      color: #61afef;
+      padding: 5px 12px;
+      font-family: monospace;
+      font-size: 0.75rem;
+      border-bottom: 1px solid #2d3142;
+    }
+    .ipynb-output {
+      background: #11131c;
+      color: #cbd5e1;
+      padding: 12px 14px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      border-top: 1px dashed #2d3142;
+      white-space: pre-wrap;
+      overflow-x: auto;
+    }
+    .ipynb-output img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 8px;
+      border-radius: 4px;
+      background: #fff;
+      padding: 4px;
+    }
+
+    /* ZIP ARCHIVE EXPLORER */
+    .zip-container {
+      max-width: 680px;
+      margin: 0 auto;
+      background: #181a26;
+      border: 1px solid #2d3142;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .zip-header {
+      background: #202334;
+      padding: 12px 16px;
+      color: #82aaff;
+      font-weight: 600;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #2d3142;
+    }
+    .zip-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 16px;
+      border-bottom: 1px solid #222638;
+      color: #e2e8f0;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .zip-item:hover, .zip-item:active {
+      background: #282c42;
+    }
+    .zip-size {
+      color: #64748b;
+      font-size: 0.75rem;
+      margin-left: 10px;
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -371,14 +551,15 @@
   <header>
     <div class="header-left">
       <img src="icon.svg" alt="App Logo">
-      <h1 id="doc-title">Personal Document Reader</h1>
+      <h1 id="doc-title">Reader</h1>
     </div>
     <span id="doc-badge"></span>
   </header>
 
   <div class="upload-bar">
-    <label for="fileInput" class="btn">Select Document (.docx, .xlsx, .pptx)</label>
-    <input type="file" id="fileInput" accept=".docx, .xlsx, .xls, .pptx, .ppt">
+    <button id="btn-back-zip" class="btn btn-secondary">⬅ Back to Archive</button>
+    <label for="fileInput" class="btn">Open Any Student File</label>
+    <input type="file" id="fileInput" accept="*/*">
   </div>
 
   <div id="viewer-container">
@@ -386,8 +567,17 @@
       <div id="zoom-wrapper">
         <div id="viewer">
           <div class="empty-state">
-            <h2>Ready to Read</h2>
-            <p>Tap the button above to open any Word (.docx), Excel (.xlsx), or PowerPoint (.pptx) file offline.</p>
+            <h2>Super Reader Ready</h2>
+            <p>Open any university, coding, data science, or office file directly on your phone.</p>
+            <div class="format-pills">
+              <span class="pill">DOCX / ODT / RTF</span>
+              <span class="pill">XLSX / CSV / ODS</span>
+              <span class="pill">PPTX / ODP</span>
+              <span class="pill">PDF / EPUB</span>
+              <span class="pill">IPYNB (Jupyter)</span>
+              <span class="pill">C++ / PY / JAVA / SQL</span>
+              <span class="pill">ZIP Archives</span>
+            </div>
           </div>
         </div>
       </div>
@@ -403,6 +593,33 @@
   </div>
 
   <script>
+    // ---------------------------------------------------------
+    // AUTO-UPDATE CACHE BUSTER FOR EXISTING STUDENT APKS
+    // ---------------------------------------------------------
+    const ENGINE_VERSION = '2.5-super-mario';
+    (async function autoUpdateExistingInstall() {
+      try {
+        const savedVersion = localStorage.getItem('READER_ENGINE_VER');
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) {
+            reg.update();
+          }
+        }
+        if (savedVersion !== ENGINE_VERSION) {
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.map(k => caches.delete(k)));
+          }
+          localStorage.setItem('READER_ENGINE_VER', ENGINE_VERSION);
+        }
+      } catch (e) {}
+    })();
+
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
     const fileInput = document.getElementById('fileInput');
     const viewer = document.getElementById('viewer');
     const container = document.getElementById('viewer-container');
@@ -412,8 +629,17 @@
     const docBadge = document.getElementById('doc-badge');
     const zoomHud = document.getElementById('zoom-hud');
     const zoomLabel = document.getElementById('zoom-label');
+    const btnBackZip = document.getElementById('btn-back-zip');
 
     let activeObjectUrls = [];
+    let lastZipFile = null;
+
+    btnBackZip.addEventListener('click', () => {
+      if (lastZipFile) {
+        btnBackZip.style.display = 'none';
+        renderFile(lastZipFile);
+      }
+    });
 
     function cleanupMemory() {
       activeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
@@ -423,7 +649,7 @@
     function updateTitle(name, badgeText = '') {
       if (name) {
         docTitle.textContent = name;
-        document.title = name;
+        document.title = `${name} - Reader`;
       }
       if (badgeText) {
         docBadge.textContent = badgeText;
@@ -487,7 +713,6 @@
       zoomWrapper.style.transform = `scale(${scale})`;
       zoomLabel.textContent = `${Math.round(scale * 100)}%`;
 
-      // Adjust physical layout box so scrollbars match the visual zoom level
       requestAnimationFrame(() => {
         const naturalW = zoomWrapper.offsetWidth;
         const naturalH = zoomWrapper.offsetHeight;
@@ -563,7 +788,6 @@
         return;
       }
 
-      // Single-finger double-tap toggles between Fit-to-Screen and 100%
       if (e.touches.length === 0) {
         const now = Date.now();
         if (now - lastTap < 300) {
@@ -577,18 +801,19 @@
     });
 
     // ---------------------------------------------------------
-    // MULTI-SHEET EXCEL ENGINE
+    // 1. MULTI-SHEET EXCEL, CSV, TSV & ODS ENGINE
     // ---------------------------------------------------------
-    async function renderExcel(file) {
+    async function renderExcel(file, badgeOverride = '') {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array' });
       
       if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
-        showError('This spreadsheet is empty.');
+        showError('This spreadsheet or CSV is empty.');
         return;
       }
 
-      updateTitle(file.name, `${workbook.SheetNames.length} Sheet${workbook.SheetNames.length > 1 ? 's' : ''}`);
+      const label = badgeOverride || `${workbook.SheetNames.length} Sheet${workbook.SheetNames.length > 1 ? 's' : ''}`;
+      updateTitle(file.name, label);
       viewer.innerHTML = '';
 
       const excelBox = document.createElement('div');
@@ -614,13 +839,437 @@
       });
 
       tableContent.innerHTML = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
-      excelBox.appendChild(tabsBar);
+      if (workbook.SheetNames.length > 1) {
+        excelBox.appendChild(tabsBar);
+      }
       excelBox.appendChild(tableContent);
       viewer.appendChild(excelBox);
     }
 
     // ---------------------------------------------------------
-    // POWERPOINT (PPTX) ENGINE WITH GROUP OFFSET & SMARTART
+    // 2. OPENDOCUMENT (.ODT & .ODP) ENGINE
+    // ---------------------------------------------------------
+    async function renderOdt(file, isPresentation = false) {
+      viewer.innerHTML = '';
+      const zip = await JSZip.loadAsync(file);
+      if (!zip.file('content.xml')) {
+        showError('Invalid OpenDocument file (missing content.xml).');
+        return;
+      }
+
+      const contentXml = await zip.file('content.xml').async('text');
+      const domParser = new DOMParser();
+      const xmlDoc = domParser.parseFromString(contentXml, 'application/xml');
+
+      const imgMap = {};
+      for (const path of Object.keys(zip.files)) {
+        if (path.startsWith('Pictures/') || path.startsWith('media/')) {
+          const blob = await zip.file(path).async('blob');
+          const url = URL.createObjectURL(blob);
+          activeObjectUrls.push(url);
+          imgMap[path] = url;
+        }
+      }
+
+      function convertOdfNode(node) {
+        if (node.nodeType === Node.TEXT_NODE) return document.createTextNode(node.nodeValue);
+        if (node.nodeType !== Node.ELEMENT_NODE) return null;
+
+        const tag = node.tagName;
+        if (tag === 'text:h') {
+          const lvl = Math.min(Math.max(parseInt(node.getAttribute('text:outline-level') || '2', 10), 1), 4);
+          const h = document.createElement('h' + lvl);
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) h.appendChild(c); }
+          return h;
+        }
+        if (tag === 'text:p') {
+          const p = document.createElement('p');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) p.appendChild(c); }
+          return p;
+        }
+        if (tag === 'text:span') {
+          const span = document.createElement('span');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) span.appendChild(c); }
+          return span;
+        }
+        if (tag === 'text:s') return document.createTextNode(' ');
+        if (tag === 'text:tab') return document.createTextNode('    ');
+        if (tag === 'text:line-break') return document.createElement('br');
+        if (tag === 'text:list') {
+          const ul = document.createElement('ul');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) ul.appendChild(c); }
+          return ul;
+        }
+        if (tag === 'text:list-item') {
+          const li = document.createElement('li');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) li.appendChild(c); }
+          return li;
+        }
+        if (tag === 'table:table') {
+          const tbl = document.createElement('table');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) tbl.appendChild(c); }
+          return tbl;
+        }
+        if (tag === 'table:table-row') {
+          const tr = document.createElement('tr');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) tr.appendChild(c); }
+          return tr;
+        }
+        if (tag === 'table:table-cell') {
+          const td = document.createElement('td');
+          for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) td.appendChild(c); }
+          return td;
+        }
+        if (tag === 'draw:image') {
+          const href = node.getAttribute('xlink:href') || '';
+          if (imgMap[href]) {
+            const img = document.createElement('img');
+            img.src = imgMap[href];
+            return img;
+          }
+          return null;
+        }
+
+        const frag = document.createDocumentFragment();
+        for (const ch of node.childNodes) { const c = convertOdfNode(ch); if (c) frag.appendChild(c); }
+        return frag;
+      }
+
+      if (isPresentation) {
+        const pages = xmlDoc.getElementsByTagName('draw:page');
+        updateTitle(file.name, `${pages.length} Slides (ODP)`);
+        for (let i = 0; i < pages.length; i++) {
+          const page = document.createElement('div');
+          page.className = 'doc-paper';
+          const hdr = document.createElement('div');
+          hdr.style.cssText = 'font-size:0.75rem; font-weight:700; color:#4f46e5; text-transform:uppercase; margin-bottom:10px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;';
+          hdr.textContent = `Slide ${i + 1} of ${pages.length}`;
+          page.appendChild(hdr);
+          page.appendChild(convertOdfNode(pages[i]));
+          viewer.appendChild(page);
+        }
+      } else {
+        updateTitle(file.name, 'ODT');
+        const page = document.createElement('div');
+        page.className = 'doc-paper';
+        const bodyNode = xmlDoc.getElementsByTagName('office:text')[0] || xmlDoc.documentElement;
+        page.appendChild(convertOdfNode(bodyNode));
+        viewer.appendChild(page);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 3. EPUB E-BOOK & TEXTBOOK ENGINE
+    // ---------------------------------------------------------
+    async function renderEpub(file) {
+      viewer.innerHTML = '';
+      const zip = await JSZip.loadAsync(file);
+      const domParser = new DOMParser();
+
+      // Load all images in EPUB for inline rendering
+      const imgMap = {};
+      for (const path of Object.keys(zip.files)) {
+        if (/\.(png|jpe?g|gif|svg|webp)$/i.test(path)) {
+          const blob = await zip.file(path).async('blob');
+          const url = URL.createObjectURL(blob);
+          activeObjectUrls.push(url);
+          imgMap[path.split('/').pop()] = url;
+        }
+      }
+
+      // Find all HTML/XHTML chapters
+      const chapters = Object.keys(zip.files)
+        .filter(p => /\.(xhtml|html|htm)$/i.test(p) && !p.toLowerCase().includes('toc'))
+        .sort();
+
+      if (chapters.length === 0) {
+        showError('No readable chapters found in this EPUB.');
+        return;
+      }
+
+      updateTitle(file.name, `EPUB (${chapters.length} Chapters)`);
+
+      for (let i = 0; i < chapters.length; i++) {
+        const rawHtml = await zip.file(chapters[i]).async('text');
+        const doc = domParser.parseFromString(rawHtml, 'text/html');
+
+        doc.querySelectorAll('img, image').forEach(img => {
+          const src = (img.getAttribute('src') || img.getAttribute('xlink:href') || '').split('/').pop();
+          if (imgMap[src]) img.setAttribute('src', imgMap[src]);
+        });
+
+        const textCheck = (doc.body?.textContent || '').trim();
+        if (!textCheck && !doc.body?.querySelector('img')) continue;
+
+        const page = document.createElement('div');
+        page.className = 'doc-paper';
+        page.innerHTML = doc.body ? doc.body.innerHTML : rawHtml;
+        viewer.appendChild(page);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 4. JUPYTER NOTEBOOK (.IPYNB) ENGINE FOR CS / DATA SCIENCE
+    // ---------------------------------------------------------
+    async function renderNotebook(file) {
+      const raw = await file.text();
+      const nb = JSON.parse(raw);
+      const cells = nb.cells || [];
+
+      updateTitle(file.name, `IPYNB (${cells.length} Cells)`);
+      viewer.innerHTML = '';
+
+      const wrap = document.createElement('div');
+      wrap.className = 'ipynb-container';
+
+      cells.forEach((cell, idx) => {
+        const card = document.createElement('div');
+        card.className = 'ipynb-cell';
+        const sourceText = Array.isArray(cell.source) ? cell.source.join('') : (cell.source || '');
+
+        if (cell.cell_type === 'markdown') {
+          const mdDiv = document.createElement('div');
+          mdDiv.className = 'ipynb-md';
+          mdDiv.innerHTML = window.marked ? marked.parse(sourceText) : sourceText;
+          card.appendChild(mdDiv);
+        } else if (cell.cell_type === 'code') {
+          const hdr = document.createElement('div');
+          hdr.className = 'ipynb-code-hdr';
+          hdr.textContent = `In [${cell.execution_count || idx + 1}]:`;
+          card.appendChild(hdr);
+
+          const pre = document.createElement('pre');
+          pre.className = 'code-body';
+          const codeEl = document.createElement('code');
+          codeEl.className = 'language-python';
+          codeEl.textContent = sourceText;
+          if (window.hljs) hljs.highlightElement(codeEl);
+          pre.appendChild(codeEl);
+          card.appendChild(pre);
+
+          if (Array.isArray(cell.outputs) && cell.outputs.length > 0) {
+            const outBox = document.createElement('div');
+            outBox.className = 'ipynb-output';
+            cell.outputs.forEach(out => {
+              if (out.text) {
+                const t = Array.isArray(out.text) ? out.text.join('') : out.text;
+                outBox.appendChild(document.createTextNode(t));
+              }
+              if (out.data) {
+                if (out.data['image/png']) {
+                  const img = document.createElement('img');
+                  img.src = 'data:image/png;base64,' + out.data['image/png'].toString().replace(/\n/g, '');
+                  outBox.appendChild(img);
+                } else if (out.data['text/plain']) {
+                  const t = Array.isArray(out.data['text/plain']) ? out.data['text/plain'].join('') : out.data['text/plain'];
+                  outBox.appendChild(document.createTextNode(t));
+                }
+              }
+            });
+            card.appendChild(outBox);
+          }
+        }
+        wrap.appendChild(card);
+      });
+
+      viewer.appendChild(wrap);
+    }
+
+    // ---------------------------------------------------------
+    // 5. INTERACTIVE ZIP ARCHIVE EXPLORER
+    // ---------------------------------------------------------
+    async function renderZipArchive(file) {
+      lastZipFile = file;
+      btnBackZip.style.display = 'none';
+      viewer.innerHTML = '';
+
+      const zip = await JSZip.loadAsync(file);
+      const entries = [];
+      zip.forEach((relPath, entry) => {
+        if (!entry.dir) entries.push(entry);
+      });
+
+      updateTitle(file.name, `ZIP (${entries.length} Files)`);
+
+      const box = document.createElement('div');
+      box.className = 'zip-container';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'zip-header';
+      hdr.textContent = `📦 Tap any file inside ${file.name} to open it:`;
+      box.appendChild(hdr);
+
+      for (const entry of entries) {
+        const row = document.createElement('div');
+        row.className = 'zip-item';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = '📄 ' + entry.name;
+        const openTag = document.createElement('span');
+        openTag.className = 'zip-size';
+        openTag.textContent = 'Tap to Read ➔';
+        row.appendChild(nameSpan);
+        row.appendChild(openTag);
+
+        row.addEventListener('click', async () => {
+          showLoading(entry.name);
+          const blob = await entry.async('blob');
+          const subFile = new File([blob], entry.name.split('/').pop());
+          btnBackZip.style.display = 'inline-flex';
+          renderFile(subFile, true);
+        });
+
+        box.appendChild(row);
+      }
+
+      viewer.appendChild(box);
+    }
+
+    // ---------------------------------------------------------
+    // 6. PDF ENGINE (PDF.JS CANVAS RENDERER)
+    // ---------------------------------------------------------
+    async function renderPdf(file) {
+      if (!window.pdfjsLib) {
+        showError('PDF library loading... Please check your internet connection.');
+        return;
+      }
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      updateTitle(file.name, `${pdf.numPages} Page${pdf.numPages > 1 ? 's' : ''}`);
+      viewer.innerHTML = '';
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.5 });
+
+        const card = document.createElement('div');
+        card.className = 'pdf-page-card';
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        card.appendChild(canvas);
+        viewer.appendChild(card);
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 7. MARKDOWN, RTF & ONE DARK PRO CODE ENGINE
+    // ---------------------------------------------------------
+    async function renderTextOrCode(file, ext) {
+      let text = await file.text();
+
+      // Markdown Notes (.md)
+      if ((ext === 'md' || ext === 'markdown') && window.marked) {
+        updateTitle(file.name, 'MARKDOWN');
+        viewer.innerHTML = '';
+        const page = document.createElement('div');
+        page.className = 'doc-paper';
+        page.innerHTML = marked.parse(text);
+        viewer.appendChild(page);
+        return;
+      }
+
+      // Rich Text Format (.rtf)
+      if (ext === 'rtf') {
+        text = text
+          .replace(/\\par[d]?/g, '\n')
+          .replace(/\{\*?\\[^{}]+}|[{}]|\\\n?[A-Za-z]+\n?(?:-?\d+)?[ ]?/g, '')
+          .replace(/\\'[0-9a-fA-F]{2}/g, '')
+          .trim();
+        updateTitle(file.name, 'RTF');
+        viewer.innerHTML = '';
+        const page = document.createElement('div');
+        page.className = 'doc-paper';
+        page.style.whiteSpace = 'pre-wrap';
+        page.textContent = text;
+        viewer.appendChild(page);
+        return;
+      }
+
+      if (ext === 'json') {
+        try { text = JSON.stringify(JSON.parse(text), null, 2); } catch (e) {}
+      }
+
+      updateTitle(file.name, ext.toUpperCase());
+      viewer.innerHTML = '';
+
+      const box = document.createElement('div');
+      box.className = 'code-container';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'code-header';
+      const langSpan = document.createElement('span');
+      langSpan.textContent = `${file.name} (${text.split('\n').length} lines)`;
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'copy-btn';
+      copyBtn.textContent = 'Copy Code';
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copied! ✓';
+        setTimeout(() => copyBtn.textContent = 'Copy Code', 1800);
+      });
+      hdr.appendChild(langSpan);
+      hdr.appendChild(copyBtn);
+
+      const pre = document.createElement('pre');
+      pre.className = 'code-body';
+      const codeEl = document.createElement('code');
+      codeEl.textContent = text || '(Empty file)';
+      if (window.hljs) {
+        try { hljs.highlightElement(codeEl); } catch (e) {}
+      }
+      pre.appendChild(codeEl);
+
+      box.appendChild(hdr);
+      box.appendChild(pre);
+      viewer.appendChild(box);
+    }
+
+    // ---------------------------------------------------------
+    // 8. IMAGE, DIAGRAM, AUDIO & VIDEO ENGINE
+    // ---------------------------------------------------------
+    function renderMedia(file, type) {
+      viewer.innerHTML = '';
+      const url = URL.createObjectURL(file);
+      activeObjectUrls.push(url);
+      updateTitle(file.name, type.toUpperCase());
+
+      if (type === 'image') {
+        const card = document.createElement('div');
+        card.style.cssText = 'text-align:center; padding:10px;';
+        const img = document.createElement('img');
+        img.src = url;
+        img.style.cssText = 'max-width:100%; height:auto; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.4);';
+        card.appendChild(img);
+        viewer.appendChild(card);
+      } else if (type === 'audio') {
+        const card = document.createElement('div');
+        card.className = 'empty-state';
+        card.innerHTML = `<h2 style="margin-bottom:14px;">🎧 ${file.name}</h2>`;
+        const audio = document.createElement('audio');
+        audio.controls = true;
+        audio.src = url;
+        audio.style.width = '100%';
+        card.appendChild(audio);
+        viewer.appendChild(card);
+      } else if (type === 'video') {
+        const card = document.createElement('div');
+        card.style.cssText = 'max-width:760px; margin:0 auto; text-align:center;';
+        const video = document.createElement('video');
+        video.controls = true;
+        video.src = url;
+        video.style.cssText = 'width:100%; border-radius:10px; background:#000;';
+        card.appendChild(video);
+        viewer.appendChild(card);
+      }
+    }
+
+    // ---------------------------------------------------------
+    // 9. POWERPOINT (PPTX) ENGINE WITH GROUP OFFSET & SMARTART
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
@@ -797,7 +1446,6 @@
           for (const node of parentXml.children) {
             const tag = node.tagName;
 
-            // Group Shapes (With Proper chOff Coordinate Subtraction)
             if (tag === 'p:grpSp') {
               const grpXfrm = node.getElementsByTagName('p:grpSpPr')[0]?.getElementsByTagName('a:xfrm')[0];
               if (grpXfrm) {
@@ -831,7 +1479,6 @@
               continue;
             }
 
-            // Standard & SmartArt Drawing Shapes
             if (tag === 'p:sp' || tag === 'dsp:sp') {
               const spPr = node.getElementsByTagName('p:spPr')[0] || node.getElementsByTagName('dsp:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -976,7 +1623,6 @@
               targetContainer.appendChild(shapeDiv);
             }
 
-            // Connector Lines
             if (tag === 'p:cxnSp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -1006,7 +1652,6 @@
               }
             }
 
-            // Pictures
             if (tag === 'p:pic') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -1036,7 +1681,6 @@
               }
             }
 
-            // Tables
             if (tag === 'p:graphicFrame') {
               const tbl = node.getElementsByTagName('a:tbl')[0];
               const xfrm = node.getElementsByTagName('p:xfrm')[0];
@@ -1085,7 +1729,6 @@
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
         if (spTree) processElements(spTree, stage, sldW, sldH, 0, 0);
 
-        // Render SmartArt Drawings if present on this slide
         for (const dPath of diagramDrawings) {
           const dXml = await zip.file(dPath).async('text');
           const dDoc = domParser.parseFromString(dXml, 'application/xml');
@@ -1093,7 +1736,6 @@
           if (dspTree) processElements(dspTree, stage, sldW, sldH, 0, 0);
         }
 
-        // Fallback for SmartArt without pre-rendered drawing shapes
         if (diagramDrawings.length === 0 && diagramData.length > 0) {
           for (const dataPath of diagramData) {
             const dataXml = await zip.file(dataPath).async('text');
@@ -1120,22 +1762,28 @@
     }
 
     // ---------------------------------------------------------
-    // MASTER DOCUMENT ROUTER
+    // 10. SUPER MARIO MASTER ROUTER (EVERY STUDENT FORMAT)
     // ---------------------------------------------------------
-    async function renderFile(file) {
+    const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico']);
+    const AUDIO_EXTS = new Set(['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac']);
+    const VIDEO_EXTS = new Set(['mp4', 'webm', 'mkv', 'mov']);
+
+    async function renderFile(file, fromZip = false) {
       if (!file) return;
+      if (!fromZip) btnBackZip.style.display = 'none';
 
       cleanupMemory();
       zoomHud.style.display = 'none';
 
-      const fileName = file.name || 'document.docx';
+      const fileName = file.name || 'document';
       updateTitle(fileName);
       showLoading(fileName);
 
-      const ext = fileName.split('.').pop().toLowerCase();
+      const ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
+      const mime = (file.type || '').toLowerCase();
 
       try {
-        if (ext === 'docx') {
+        if (ext === 'docx' || mime.includes('wordprocessingml')) {
           viewer.innerHTML = '';
           updateTitle(fileName, 'DOCX');
           await docx.renderAsync(file, viewer, null, {
@@ -1145,18 +1793,53 @@
           });
           zoomHud.style.display = 'flex';
           fitDocumentToScreen();
-        } else if (ext === 'xlsx' || ext === 'xls') {
-          await renderExcel(file);
+        } else if (
+          ext === 'xlsx' || ext === 'xls' || ext === 'csv' || ext === 'tsv' || ext === 'ods' || ext === 'dif' || ext === 'prn' ||
+          mime.includes('spreadsheet') || mime.includes('excel') || mime.includes('csv')
+        ) {
+          const badge = (ext === 'csv' || ext === 'tsv' || ext === 'ods') ? ext.toUpperCase() : '';
+          await renderExcel(file, badge);
           zoomHud.style.display = 'flex';
           fitDocumentToScreen();
-        } else if (ext === 'pptx') {
+        } else if (ext === 'odt' || mime.includes('opendocument.text')) {
+          await renderOdt(file, false);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'odp' || mime.includes('opendocument.presentation')) {
+          await renderOdt(file, true);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'pptx' || mime.includes('presentationml')) {
           await renderPptx(file);
           zoomHud.style.display = 'flex';
           fitDocumentToScreen();
-        } else if (ext === 'ppt') {
-          showError('Old .ppt format detected. Please save or export it as .pptx.');
+        } else if (ext === 'pdf' || mime === 'application/pdf') {
+          await renderPdf(file);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'epub' || mime.includes('epub')) {
+          await renderEpub(file);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'ipynb') {
+          await renderNotebook(file);
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (ext === 'zip' || mime.includes('zip')) {
+          await renderZipArchive(file);
+        } else if (IMAGE_EXTS.has(ext) || mime.startsWith('image/')) {
+          renderMedia(file, 'image');
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
+        } else if (AUDIO_EXTS.has(ext) || mime.startsWith('audio/')) {
+          renderMedia(file, 'audio');
+        } else if (VIDEO_EXTS.has(ext) || mime.startsWith('video/')) {
+          renderMedia(file, 'video');
         } else {
-          showError('Unsupported file format. Please select a .docx, .xlsx, or .pptx file.');
+          // Universal fallback: reads C++, Python, Java, SQL, Markdown, RTF, JSON, TXT, LaTeX, etc.
+          await renderTextOrCode(file, ext || 'TEXT');
+          zoomHud.style.display = 'flex';
+          fitDocumentToScreen();
         }
       } catch (err) {
         showError(`Error rendering file: ${err.message}`);
@@ -1195,6 +1878,7 @@
         }
       });
     }
+
     // ---------------------------------------------------------
     // NATIVE ANDROID APK BRIDGE (FOR DIRECT WHATSAPP FILE TAPS)
     // ---------------------------------------------------------
@@ -1207,27 +1891,7 @@
           bytes[i] = binaryString.charCodeAt(i);
         }
         const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
-        const file = new File([blob], fileName || 'whatsapp-document.docx', {
-          type: mimeType || 'application/octet-stream'
-        });
-        renderFile(file);
-      } catch (err) {
-        showError('Failed to open file from WhatsApp: ' + err.message);
-      }
-    };
-    // ---------------------------------------------------------
-    // NATIVE ANDROID APK BRIDGE (FOR DIRECT WHATSAPP FILE TAPS)
-    // ---------------------------------------------------------
-    window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
-      try {
-        const binaryString = atob(base64Data);
-        const len = binaryString.length;
-        const bytes = new Uint8Array(len);
-        for (let i = 0; i < len; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-        const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
-        const file = new File([blob], fileName || 'whatsapp-document.docx', {
+        const file = new File([blob], fileName || 'whatsapp-document', {
           type: mimeType || 'application/octet-stream'
         });
         renderFile(file);
