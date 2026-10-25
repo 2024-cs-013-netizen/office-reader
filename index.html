@@ -453,6 +453,8 @@
       border-radius: 8px;
       font-weight: 700;
       font-size: 0.92rem;
+      border: none;
+      cursor: pointer;
       box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
       margin-top: 20px;
     }
@@ -502,7 +504,7 @@
     <button class="hud-btn" id="btn-zoom-in">+</button>
   </div>
 
-  <!-- HARD LOCKOUT OVERLAY FOR MANDATORY UPDATES -->
+  <!-- HARD LOCKOUT OVERLAY WITH REAL-TIME PROGRESS STRIP -->
   <div id="lockdown-overlay">
     <div class="lockdown-card">
       <div style="font-size: 2.4rem; margin-bottom: 12px;">🚨</div>
@@ -510,8 +512,26 @@
       <p id="lockdown-text" style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">
         A critical update is required to open WhatsApp CSV, PDF, and university documents. Please update to continue.
       </p>
-      <a id="btn-download-apk" class="lockdown-btn" href="#">
+
+      <!-- LIVE DOWNLOADING PROGRESS STRIP -->
+      <div id="download-progress-container" style="display: none; margin-top: 18px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; color: #82aaff; margin-bottom: 6px;">
+          <span id="download-status">Connecting to server...</span>
+          <span id="download-percent">0%</span>
+        </div>
+        <div style="width: 100%; height: 10px; background: #1e2130; border-radius: 6px; overflow: hidden; border: 1px solid #2d3142;">
+          <div id="download-progress-bar" style="width: 0%; height: 100%; background: #4f46e5; border-radius: 6px; transition: width 0.15s ease;"></div>
+        </div>
+        <div id="download-bytes" style="font-size: 0.72rem; color: #64748b; margin-top: 5px; text-align: right;">0 MB / 0 MB</div>
+      </div>
+
+      <button id="btn-download-apk" class="lockdown-btn" type="button">
         Download Update
+      </button>
+
+      <!-- BROWSER FALLBACK LINK -->
+      <a id="btn-browser-fallback" href="#" target="_blank" style="display: none; margin-top: 14px; font-size: 0.78rem; color: #82aaff; text-decoration: underline;">
+        Having trouble? Tap to download via Chrome browser
       </a>
     </div>
   </div>
@@ -1282,33 +1302,102 @@
     };
 
     // ---------------------------------------------------------
-    // 9. REMOTE HARD KILL-SWITCH (VERSION GATEKEEPER)
+    // 9. REMOTE HARD KILL-SWITCH (VERSION GATEKEEPER & LIVE DOWNLOADER)
     // ---------------------------------------------------------
+    let targetApkUrl = 'https://github.com/2024-cs-013-netizen/office-reader/releases/download/v2.0/Reader.apk';
+
     async function enforceLatestVersion() {
       // Allow MainActivity.java onPageFinished time to inject window.INSTALLED_APK_VERSION
       await new Promise(r => setTimeout(r, 400));
 
       const installedVer = window.INSTALLED_APK_VERSION || 1;
-      const configUrl = 'https://raw.githubusercontent.com/2024-cs-013-netizen/office-reader/main/version.json';
+      const configUrl = '/version.json';
 
       try {
-        const res = await fetch(configUrl + '?t=' + Date.now(), { cache: 'no-store' });
+        let res = await fetch(configUrl + '?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) {
+          res = await fetch('https://raw.githubusercontent.com/2024-cs-013-netizen/office-reader/main/version.json?t=' + Date.now(), { cache: 'no-store' });
+        }
         if (!res.ok) return;
 
         const remote = await res.json();
+        if (remote.apk_url) targetApkUrl = remote.apk_url;
+
         if (installedVer < remote.required_apk_version) {
           const overlay = document.getElementById('lockdown-overlay');
           const text = document.getElementById('lockdown-text');
           const btn = document.getElementById('btn-download-apk');
+          const fallback = document.getElementById('btn-browser-fallback');
 
           if (remote.update_message) text.textContent = remote.update_message;
-          if (remote.apk_url) btn.href = remote.apk_url;
+          fallback.href = targetApkUrl;
 
           overlay.style.display = 'flex';
           viewer.innerHTML = '';
+
+          btn.onclick = () => runLiveDownload(targetApkUrl);
         }
       } catch (err) {
         console.log('Version check skipped: device offline');
+      }
+    }
+
+    async function runLiveDownload(url) {
+      const btn = document.getElementById('btn-download-apk');
+      const progressBox = document.getElementById('download-progress-container');
+      const progressBar = document.getElementById('download-progress-bar');
+      const percentText = document.getElementById('download-percent');
+      const statusText = document.getElementById('download-status');
+      const bytesText = document.getElementById('download-bytes');
+      const fallback = document.getElementById('btn-browser-fallback');
+
+      btn.style.display = 'none';
+      progressBox.style.display = 'block';
+      fallback.style.display = 'inline-block';
+
+      try {
+        statusText.textContent = 'Connecting...';
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const contentLength = +response.headers.get('Content-Length') || (5.5 * 1024 * 1024);
+        const reader = response.body.getReader();
+        let receivedLength = 0;
+        let chunks = [];
+
+        statusText.textContent = 'Downloading update...';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          receivedLength += value.length;
+
+          const pct = Math.min(Math.round((receivedLength / contentLength) * 100), 100);
+          progressBar.style.width = pct + '%';
+          percentText.textContent = pct + '%';
+          bytesText.textContent = `${(receivedLength / (1024 * 1024)).toFixed(1)} MB / ${(contentLength / (1024 * 1024)).toFixed(1)} MB`;
+        }
+
+        statusText.textContent = 'Download Complete!';
+        percentText.textContent = '100%';
+        progressBar.style.background = '#10b981';
+
+        // Trigger phone package install
+        const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = 'Reader.apk';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 40000);
+
+      } catch (err) {
+        statusText.textContent = 'Download blocked by WebView';
+        progressBar.style.background = '#ef4444';
+        bytesText.textContent = 'Tap the Chrome browser link below';
+        window.location.href = url;
       }
     }
 
