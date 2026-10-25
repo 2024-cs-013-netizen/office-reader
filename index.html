@@ -438,7 +438,7 @@
       background: #161926;
       border: 1px solid #2d3142;
       border-radius: 14px;
-      max-width: 360px;
+      max-width: 380px;
       width: 100%;
       padding: 28px 22px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.6);
@@ -449,16 +449,43 @@
       background: #4f46e5;
       color: #fff;
       text-decoration: none;
-      padding: 13px 0;
+      padding: 14px 0;
       border-radius: 8px;
       font-weight: 700;
-      font-size: 0.92rem;
+      font-size: 0.95rem;
       border: none;
       cursor: pointer;
       box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-      margin-top: 20px;
+      margin-top: 18px;
+      transition: background 0.15s;
     }
     .lockdown-btn:active { background: #4338ca; }
+    
+    .url-card {
+      background: #0f111a;
+      border: 1px solid #282c3f;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 16px;
+      font-family: Consolas, monospace;
+      font-size: 0.72rem;
+      color: #82aaff;
+      word-break: break-all;
+      text-align: left;
+      user-select: all;
+    }
+    .steps-box {
+      margin-top: 14px;
+      text-align: left;
+      font-size: 0.78rem;
+      color: #94a3b8;
+      line-height: 1.5;
+      background: #12141f;
+      padding: 10px 12px;
+      border-radius: 6px;
+      border: 1px solid #1e2130;
+    }
+    .steps-box b { color: #e2e8f0; }
   </style>
 </head>
 <body>
@@ -504,35 +531,31 @@
     <button class="hud-btn" id="btn-zoom-in">+</button>
   </div>
 
-  <!-- HARD LOCKOUT OVERLAY WITH REAL-TIME PROGRESS STRIP -->
+  <!-- HARD LOCKOUT OVERLAY (DIRECT BROWSER HANDOFF & CLIPBOARD BACKUP) -->
   <div id="lockdown-overlay">
     <div class="lockdown-card">
       <div style="font-size: 2.4rem; margin-bottom: 12px;">🚨</div>
-      <h2 style="color: #fff; font-size: 1.15rem; margin-bottom: 10px;">Update Required</h2>
+      <h2 style="color: #fff; font-size: 1.15rem; margin-bottom: 8px;">Update Required (v2.0)</h2>
       <p id="lockdown-text" style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">
-        A critical update is required to open WhatsApp CSV, PDF, and university documents. Please update to continue.
+        A critical update is required to open WhatsApp CSV, PDF, and university documents.
       </p>
 
-      <!-- LIVE DOWNLOADING PROGRESS STRIP -->
-      <div id="download-progress-container" style="display: none; margin-top: 18px; text-align: left;">
-        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; color: #82aaff; margin-bottom: 6px;">
-          <span id="download-status">Connecting to server...</span>
-          <span id="download-percent">0%</span>
-        </div>
-        <div style="width: 100%; height: 10px; background: #1e2130; border-radius: 6px; overflow: hidden; border: 1px solid #2d3142;">
-          <div id="download-progress-bar" style="width: 0%; height: 100%; background: #4f46e5; border-radius: 6px; transition: width 0.15s ease;"></div>
-        </div>
-        <div id="download-bytes" style="font-size: 0.72rem; color: #64748b; margin-top: 5px; text-align: right;">0 MB / 0 MB</div>
-      </div>
-
       <button id="btn-download-apk" class="lockdown-btn" type="button">
-        Download Update
+        📥 Copy Download Link
       </button>
 
-      <!-- BROWSER FALLBACK LINK -->
-      <a id="btn-browser-fallback" href="#" target="_blank" style="display: none; margin-top: 14px; font-size: 0.78rem; color: #82aaff; text-decoration: underline;">
-        Having trouble? Tap to download via Chrome browser
-      </a>
+      <div id="copy-status" style="display: none; margin-top: 12px; font-size: 0.82rem; color: #10b981; font-weight: 600;">
+        ✓ Link copied! Opening Chrome...
+      </div>
+
+      <div class="steps-box">
+        <div><b>1.</b> Tap the button above to copy the official APK link.</div>
+        <div><b>2.</b> Open <b>Google Chrome</b>, paste the link in the address bar, and download <b>Reader.apk</b>.</div>
+      </div>
+
+      <div id="direct-url-box" class="url-card">
+        https://github.com/2024-cs-013-netizen/office-reader/releases/download/v2.0/Reader.apk
+      </div>
     </div>
   </div>
 
@@ -1302,12 +1325,11 @@
     };
 
     // ---------------------------------------------------------
-    // 9. REMOTE HARD KILL-SWITCH (VERSION GATEKEEPER & LIVE DOWNLOADER)
+    // 9. REMOTE HARD KILL-SWITCH (UNIVERSAL BROWSER HANDOFF)
     // ---------------------------------------------------------
     let targetApkUrl = 'https://github.com/2024-cs-013-netizen/office-reader/releases/download/v2.0/Reader.apk';
 
     async function enforceLatestVersion() {
-      // Allow MainActivity.java onPageFinished time to inject window.INSTALLED_APK_VERSION
       await new Promise(r => setTimeout(r, 400));
 
       const installedVer = window.INSTALLED_APK_VERSION || 1;
@@ -1327,77 +1349,40 @@
           const overlay = document.getElementById('lockdown-overlay');
           const text = document.getElementById('lockdown-text');
           const btn = document.getElementById('btn-download-apk');
-          const fallback = document.getElementById('btn-browser-fallback');
+          const copyStatus = document.getElementById('copy-status');
+          const directUrlBox = document.getElementById('direct-url-box');
 
           if (remote.update_message) text.textContent = remote.update_message;
-          fallback.href = targetApkUrl;
+          if (directUrlBox) directUrlBox.textContent = targetApkUrl;
 
           overlay.style.display = 'flex';
           viewer.innerHTML = '';
 
-          btn.onclick = () => runLiveDownload(targetApkUrl);
+          btn.onclick = () => {
+            // 1. Universal clipboard copy (works on every mobile browser/WebView)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText(targetApkUrl);
+            } else {
+              const ta = document.createElement('textarea');
+              ta.value = targetApkUrl;
+              document.body.appendChild(ta);
+              ta.select();
+              document.execCommand('copy');
+              document.body.removeChild(ta);
+            }
+
+            copyStatus.style.display = 'block';
+            btn.textContent = '✓ Link Copied! (Tap Again to Re-copy)';
+            btn.style.background = '#10b981';
+
+            // 2. Direct browser handoff without target="_blank"
+            try {
+              window.location.href = targetApkUrl;
+            } catch (e) {}
+          };
         }
       } catch (err) {
         console.log('Version check skipped: device offline');
-      }
-    }
-
-    async function runLiveDownload(url) {
-      const btn = document.getElementById('btn-download-apk');
-      const progressBox = document.getElementById('download-progress-container');
-      const progressBar = document.getElementById('download-progress-bar');
-      const percentText = document.getElementById('download-percent');
-      const statusText = document.getElementById('download-status');
-      const bytesText = document.getElementById('download-bytes');
-      const fallback = document.getElementById('btn-browser-fallback');
-
-      btn.style.display = 'none';
-      progressBox.style.display = 'block';
-      fallback.style.display = 'inline-block';
-
-      try {
-        statusText.textContent = 'Connecting...';
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const contentLength = +response.headers.get('Content-Length') || (5.5 * 1024 * 1024);
-        const reader = response.body.getReader();
-        let receivedLength = 0;
-        let chunks = [];
-
-        statusText.textContent = 'Downloading update...';
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          chunks.push(value);
-          receivedLength += value.length;
-
-          const pct = Math.min(Math.round((receivedLength / contentLength) * 100), 100);
-          progressBar.style.width = pct + '%';
-          percentText.textContent = pct + '%';
-          bytesText.textContent = `${(receivedLength / (1024 * 1024)).toFixed(1)} MB / ${(contentLength / (1024 * 1024)).toFixed(1)} MB`;
-        }
-
-        statusText.textContent = 'Download Complete!';
-        percentText.textContent = '100%';
-        progressBar.style.background = '#10b981';
-
-        // Trigger phone package install
-        const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
-        const blobUrl = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = 'Reader.apk';
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 40000);
-
-      } catch (err) {
-        statusText.textContent = 'Download blocked by WebView';
-        progressBar.style.background = '#ef4444';
-        bytesText.textContent = 'Tap the Chrome browser link below';
-        window.location.href = url;
       }
     }
 
