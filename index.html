@@ -420,6 +420,43 @@
       cursor: pointer;
     }
     .zip-item:active { background: #282c42; }
+
+    /* HARD KILL-SWITCH / FORCED UPDATE OVERLAY */
+    #lockdown-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0b0d14;
+      z-index: 9999999;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .lockdown-card {
+      background: #161926;
+      border: 1px solid #2d3142;
+      border-radius: 14px;
+      max-width: 360px;
+      width: 100%;
+      padding: 28px 22px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .lockdown-btn {
+      display: block;
+      width: 100%;
+      background: #4f46e5;
+      color: #fff;
+      text-decoration: none;
+      padding: 13px 0;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+      margin-top: 20px;
+    }
+    .lockdown-btn:active { background: #4338ca; }
   </style>
 </head>
 <body>
@@ -463,6 +500,20 @@
     <button class="hud-btn" id="btn-zoom-out">−</button>
     <span id="zoom-label">100%</span>
     <button class="hud-btn" id="btn-zoom-in">+</button>
+  </div>
+
+  <!-- HARD LOCKOUT OVERLAY FOR MANDATORY UPDATES -->
+  <div id="lockdown-overlay">
+    <div class="lockdown-card">
+      <div style="font-size: 2.4rem; margin-bottom: 12px;">🚨</div>
+      <h2 style="color: #fff; font-size: 1.15rem; margin-bottom: 10px;">Update Required</h2>
+      <p id="lockdown-text" style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">
+        A critical update is required to open WhatsApp CSV, PDF, and university documents. Please update to continue.
+      </p>
+      <a id="btn-download-apk" class="lockdown-btn" href="#">
+        Download Update
+      </a>
+    </div>
   </div>
 
   <script>
@@ -622,7 +673,7 @@
     });
 
     // ---------------------------------------------------------
-    // 1. BULLETPROOF CSV / TSV PARSER (SUPPORTS ALL DELIMITERS)
+    // 1. BULLETPROOF CSV / TSV PARSER
     // ---------------------------------------------------------
     function parseDelimitedText(text, delimiter = ',') {
       const rows = [];
@@ -674,7 +725,6 @@
 
     async function renderCsv(file) {
       let text = await file.text();
-      // Strip UTF-8 BOM if present
       if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
 
       const firstLine = text.split(/\r?\n/)[0] || '';
@@ -717,7 +767,7 @@
     }
 
     // ---------------------------------------------------------
-    // 2. BULLETPROOF PDF ENGINE
+    // 2. INLINE-SAFE PDF ENGINE
     // ---------------------------------------------------------
     async function renderPdf(file) {
       viewer.innerHTML = '';
@@ -747,7 +797,7 @@
         card.appendChild(canvas);
         viewer.appendChild(card);
 
-        await page.render({ canvasContext: ctx, viewport }).promise;
+        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
       }
 
       zoomHud.style.display = 'flex';
@@ -755,7 +805,7 @@
     }
 
     // ---------------------------------------------------------
-    // 3. MULTI-SHEET EXCEL & ODS ENGINE
+    // 3. EXCEL & ODS ENGINE
     // ---------------------------------------------------------
     async function renderExcel(file) {
       const data = await file.arrayBuffer();
@@ -1098,7 +1148,7 @@
     }
 
     // ---------------------------------------------------------
-    // 8. SMART BYTE-SNIFFING ROUTER (NEVER FAILS ON HIDDEN EXTENSIONS)
+    // 8. SMART BYTE-SNIFFING ROUTER
     // ---------------------------------------------------------
     async function renderFile(file, fromZip = false) {
       if (!file) return;
@@ -1115,25 +1165,21 @@
       const mime = (file.type || '').toLowerCase();
 
       try {
-        // Read first 4 magic bytes to identify disguised files from Android/WhatsApp
         const headerSlice = await file.slice(0, 4).arrayBuffer();
         const headerBytes = new Uint8Array(headerSlice);
-        const isPdfMagic = (headerBytes[0] === 0x25 && headerBytes[1] === 0x50 && headerBytes[2] === 0x44 && headerBytes[3] === 0x46); // %PDF
-        const isZipMagic = (headerBytes[0] === 0x50 && headerBytes[1] === 0x4B); // PK..
+        const isPdfMagic = (headerBytes[0] === 0x25 && headerBytes[1] === 0x50 && headerBytes[2] === 0x44 && headerBytes[3] === 0x46);
+        const isZipMagic = (headerBytes[0] === 0x50 && headerBytes[1] === 0x4B);
 
-        // 1. Check PDF first (by extension, MIME, or %PDF magic bytes)
         if (ext === 'pdf' || mime.includes('pdf') || isPdfMagic) {
           await renderPdf(file);
           return;
         }
 
-        // 2. Check CSV / TSV explicitly before Excel
         if (ext === 'csv' || ext === 'tsv' || mime.includes('csv') || mime.includes('comma-separated')) {
           await renderCsv(file);
           return;
         }
 
-        // 3. If it's a ZIP container (DOCX, XLSX, PPTX, ODT, ODS, ODP, or ZIP)
         if (isZipMagic) {
           if (ext === 'docx' || mime.includes('wordprocessingml')) {
             viewer.innerHTML = '';
@@ -1160,7 +1206,6 @@
             return;
           }
 
-          // Inspect inside the ZIP if Android hid the file extension
           const zipCheck = await JSZip.loadAsync(file);
           if (zipCheck.file('word/document.xml')) {
             viewer.innerHTML = '';
@@ -1187,13 +1232,11 @@
           return;
         }
 
-        // 4. Legacy .xls spreadsheet
         if (ext === 'xls' || mime.includes('excel')) {
           await renderExcel(file);
           return;
         }
 
-        // 5. Check if plain text file is actually a CSV disguised without an extension
         const sampleText = await file.slice(0, 1024).text();
         const sampleLines = sampleText.trim().split(/\r?\n/);
         if (
@@ -1206,7 +1249,6 @@
           return;
         }
 
-        // 6. Universal fallback: Code, Markdown, JSON, TXT
         await renderTextOrCode(file, ext || 'TXT');
 
       } catch (err) {
@@ -1220,8 +1262,11 @@
       if (e.target.files[0]) renderFile(e.target.files[0]);
     });
 
-    // Native Android APK Bridge (WhatsApp direct tap)
+    // Native Android APK Bridge with Lockdown Protection
     window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
+      if (document.getElementById('lockdown-overlay').style.display === 'flex') {
+        return;
+      }
       try {
         const binaryString = atob(base64Data);
         const bytes = new Uint8Array(binaryString.length);
@@ -1235,6 +1280,39 @@
         showError('Failed to load file from WhatsApp: ' + err.message);
       }
     };
+
+    // ---------------------------------------------------------
+    // 9. REMOTE HARD KILL-SWITCH (VERSION GATEKEEPER)
+    // ---------------------------------------------------------
+    async function enforceLatestVersion() {
+      // Allow MainActivity.java onPageFinished time to inject window.INSTALLED_APK_VERSION
+      await new Promise(r => setTimeout(r, 400));
+
+      const installedVer = window.INSTALLED_APK_VERSION || 1;
+      const configUrl = 'https://raw.githubusercontent.com/2024-cs-013-netizen/office-reader/main/version.json';
+
+      try {
+        const res = await fetch(configUrl + '?t=' + Date.now(), { cache: 'no-store' });
+        if (!res.ok) return;
+
+        const remote = await res.json();
+        if (installedVer < remote.required_apk_version) {
+          const overlay = document.getElementById('lockdown-overlay');
+          const text = document.getElementById('lockdown-text');
+          const btn = document.getElementById('btn-download-apk');
+
+          if (remote.update_message) text.textContent = remote.update_message;
+          if (remote.apk_url) btn.href = remote.apk_url;
+
+          overlay.style.display = 'flex';
+          viewer.innerHTML = '';
+        }
+      } catch (err) {
+        console.log('Version check skipped: device offline');
+      }
+    }
+
+    enforceLatestVersion();
   </script>
 </body>
 </html>
