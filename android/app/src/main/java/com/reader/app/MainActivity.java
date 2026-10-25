@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
 
     private static final String LIVE_URL = "https://office-reader.vercel.app/";
     private static final int FILE_CHOOSER_REQ = 1001;
+    private static final int APP_VERSION = 2; // Incremented native version for update enforcement
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
@@ -59,6 +60,10 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+
+                // Inject the native APK version stamp into JavaScript environment
+                view.evaluateJavascript("window.INSTALLED_APK_VERSION = " + APP_VERSION + ";", null);
+
                 pageReady = true;
                 if (pendingFileUri != null) {
                     Uri uriToLoad = pendingFileUri;
