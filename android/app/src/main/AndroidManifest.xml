@@ -51,5 +51,11 @@
             </intent-filter>
 
         </activity>
+        <!-- Native ContentProvider to safely pass the APK to PackageInstaller -->
+        <provider
+            android:name=".MainActivity$GenericFileProvider"
+            android:authorities="com.reader.app.provider"
+            android:exported="false"
+            android:grantUriPermissions="true" />
     </application>
 </manifest>
