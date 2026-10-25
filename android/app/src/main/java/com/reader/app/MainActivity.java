@@ -1,19 +1,20 @@
 package com.reader.app;
 
 import android.app.Activity;
+import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
-import android.os.StrictMode;
-import android.provider.MediaStore;
+import android.os.ParcelFileDescriptor;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.util.Base64;
 import android.view.Window;
 import android.webkit.DownloadListener;
@@ -26,6 +27,7 @@ import android.webkit.WebViewClient;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,8 +43,58 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri pendingFileUri = null;
-    private Uri downloadedApkUri = null;
     private boolean pageReady = false;
+
+    // -------------------------------------------------------------
+    // Built-in Native FileProvider (Zero external libraries needed)
+    // -------------------------------------------------------------
+    public static class GenericFileProvider extends ContentProvider {
+        @Override
+        public boolean onCreate() {
+            return true;
+        }
+
+        @Override
+        public ParcelFileDescriptor openFile(Uri uri, String mode) throws FileNotFoundException {
+            File file = new File(getContext().getCacheDir(), "Reader_Update.apk");
+            if (file.exists()) {
+                return ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+            }
+            throw new FileNotFoundException("Update file not found");
+        }
+
+        @Override
+        public String getType(Uri uri) {
+            return "application/vnd.android.package-archive";
+        }
+
+        @Override
+        public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+            File file = new File(getContext().getCacheDir(), "Reader_Update.apk");
+            if (!file.exists()) return null;
+            String[] cols = projection != null ? projection : new String[] {
+                    OpenableColumns.DISPLAY_NAME,
+                    OpenableColumns.SIZE
+            };
+            MatrixCursor cursor = new MatrixCursor(cols, 1);
+            Object[] row = new Object[cols.length];
+            for (int i = 0; i < cols.length; i++) {
+                if (OpenableColumns.DISPLAY_NAME.equals(cols[i])) {
+                    row[i] = "Reader.apk";
+                } else if (OpenableColumns.SIZE.equals(cols[i])) {
+                    row[i] = file.length();
+                } else {
+                    row[i] = null;
+                }
+            }
+            cursor.addRow(row);
+            return cursor;
+        }
+
+        @Override public Uri insert(Uri uri, ContentValues values) { return null; }
+        @Override public int delete(Uri uri, String selection, String[] selectionArgs) { return 0; }
+        @Override public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) { return 0; }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,7 +124,6 @@ public class MainActivity extends Activity {
         // Attach Native In-App Updater Bridge
         webView.addJavascriptInterface(new AndroidUpdater(), "AndroidUpdater");
 
-        // Handle any direct file downloads inside WebView
         webView.setDownloadListener(new DownloadListener() {
             @Override
             public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimeType, long contentLength) {
@@ -84,10 +135,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-
-                // Inject the native APK version stamp into JavaScript environment
                 view.evaluateJavascript("window.INSTALLED_APK_VERSION = " + APP_VERSION + ";", null);
-
                 pageReady = true;
                 if (pendingFileUri != null) {
                     Uri uriToLoad = pendingFileUri;
@@ -128,9 +176,13 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public void installNow() {
-            if (downloadedApkUri != null) {
-                runOnUiThread(() -> triggerPackageInstaller(downloadedApkUri));
-            }
+            runOnUiThread(() -> {
+                File apkFile = new File(getCacheDir(), "Reader_Update.apk");
+                if (apkFile.exists()) {
+                    Uri targetUri = Uri.parse("content://" + getPackageName() + ".provider/Reader_Update.apk");
+                    triggerPackageInstaller(targetUri);
+                }
+            });
         }
     }
 
@@ -164,35 +216,14 @@ public class MainActivity extends Activity {
                 }
 
                 long totalBytes = conn.getContentLength();
-                if (totalBytes <= 0) totalBytes = 4500000;
+                if (totalBytes <= 0) totalBytes = 18000;
 
-                OutputStream outStream = null;
-                Uri targetUri = null;
+                File apkFile = new File(getCacheDir(), "Reader_Update.apk");
+                if (apkFile.exists()) apkFile.delete();
 
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    ContentValues values = new ContentValues();
-                    values.put(MediaStore.Downloads.DISPLAY_NAME, "Reader_" + System.currentTimeMillis() + ".apk");
-                    values.put(MediaStore.Downloads.MIME_TYPE, "application/vnd.android.package-archive");
-                    values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-                    targetUri = getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-                    if (targetUri != null) {
-                        outStream = getContentResolver().openOutputStream(targetUri);
-                    }
-                } else {
-                    StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
-                    StrictMode.setVmPolicy(builder.build());
-                    File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-                    if (dir == null) dir = getCacheDir();
-                    File apkFile = new File(dir, "Reader_Update.apk");
-                    if (apkFile.exists()) apkFile.delete();
-                    outStream = new FileOutputStream(apkFile);
-                    targetUri = Uri.fromFile(apkFile);
-                }
-
-                if (outStream == null) return;
-
+                OutputStream outStream = new FileOutputStream(apkFile);
                 InputStream inStream = conn.getInputStream();
-                byte[] buffer = new byte[16384];
+                byte[] buffer = new byte[8192];
                 int bytesRead;
                 long totalRead = 0;
                 int lastPct = -1;
@@ -217,12 +248,11 @@ public class MainActivity extends Activity {
                 inStream.close();
                 conn.disconnect();
 
-                downloadedApkUri = targetUri;
-                final Uri finalUri = targetUri;
+                final Uri targetUri = Uri.parse("content://" + getPackageName() + ".provider/Reader_Update.apk");
 
                 runOnUiThread(() -> {
                     webView.evaluateJavascript("if(window.onNativeDownloadComplete){window.onNativeDownloadComplete();}", null);
-                    triggerPackageInstaller(finalUri);
+                    triggerPackageInstaller(targetUri);
                 });
 
             } catch (Exception e) {
@@ -234,6 +264,17 @@ public class MainActivity extends Activity {
     private void triggerPackageInstaller(Uri apkUri) {
         if (apkUri == null) return;
         try {
+            // Check Android 8.0+ Unknown Sources Permission
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                if (!getPackageManager().canRequestPackageInstalls()) {
+                    Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:" + getPackageName()));
+                    startActivity(settingsIntent);
+                    return;
+                }
+            }
+
+            // Launch Native System Package Installer
             Intent install = new Intent(Intent.ACTION_VIEW);
             install.setDataAndType(apkUri, "application/vnd.android.package-archive");
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
