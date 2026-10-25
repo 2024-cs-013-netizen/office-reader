@@ -505,13 +505,13 @@
     <button class="hud-btn" id="btn-zoom-in">+</button>
   </div>
 
-  <!-- HARD LOCKOUT OVERLAY WITH RESTORED LIVE PROGRESS STRIP -->
+  <!-- HARD LOCKOUT OVERLAY WITH LIVE PROGRESS STRIP & NATIVE INSTALLER -->
   <div id="lockdown-overlay">
     <div class="lockdown-card">
       <div style="font-size: 2.4rem; margin-bottom: 12px;">🚨</div>
       <h2 style="color: #fff; font-size: 1.15rem; margin-bottom: 10px;">Update Required</h2>
       <p id="lockdown-text" style="color: #94a3b8; font-size: 0.85rem; line-height: 1.5;">
-        A critical update is required to open WhatsApp CSV, PDF, and university documents.
+        A critical update is required to open WhatsApp CSV, PDF, and university documents. Please update to continue.
       </p>
 
       <!-- LIVE DOWNLOADING PROGRESS STRIP -->
@@ -523,21 +523,20 @@
         <div style="width: 100%; height: 10px; background: #1e2130; border-radius: 6px; overflow: hidden; border: 1px solid #2d3142;">
           <div id="download-progress-bar" style="width: 0%; height: 100%; background: #4f46e5; border-radius: 6px; transition: width 0.15s ease;"></div>
         </div>
-        <div id="download-bytes" style="font-size: 0.72rem; color: #64748b; margin-top: 5px; text-align: right;">0 MB / 0 MB</div>
+        <div id="download-bytes" style="font-size: 0.72rem; color: #64748b; margin-top: 5px; text-align: right;">0.0 MB / 0.0 MB</div>
       </div>
 
       <button id="btn-download-apk" class="lockdown-btn" type="button">
         Download Update
       </button>
 
-      <a id="btn-action-install" class="lockdown-btn" href="/Reader.apk" style="display: none; background: #10b981; margin-top: 16px;">
+      <button id="btn-action-install" class="lockdown-btn" type="button" style="display: none; background: #10b981; margin-top: 16px;">
         ✅ Download Ready (Tap to Install)
-      </a>
+      </button>
     </div>
   </div>
 
   <script>
-    // Force Service Worker update check on every launch
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then((reg) => {
         reg.update();
@@ -962,13 +961,6 @@
         }
       }
 
-      const themeColors = {
-        'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
-        'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
-        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c',
-        'tx1': '#111827', 'tx2': '#374151', 'bg1': '#ffffff', 'bg2': '#f3f4f6'
-      };
-
       const slidePaths = [];
       zip.forEach((path) => {
         if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
@@ -1281,9 +1273,35 @@
     };
 
     // ---------------------------------------------------------
-    // 9. REMOTE HARD KILL-SWITCH (RESTORED PROGRESS BAR ENGINE)
+    // 9. NATIVE GUI PROGRESS BAR + DIRECT ANDROID AUTO-INSTALLER
     // ---------------------------------------------------------
-    let targetApkUrl = '/Reader.apk';
+    let targetApkUrl = 'https://office-reader.vercel.app/Reader.apk';
+
+    // Callbacks triggered directly by MainActivity.java during native download
+    window.onNativeDownloadProgress = function(pct, mbRead, mbTotal) {
+      const progressBar = document.getElementById('download-progress-bar');
+      const percentText = document.getElementById('download-percent');
+      const statusText = document.getElementById('download-status');
+      const bytesText = document.getElementById('download-bytes');
+
+      statusText.textContent = 'Downloading update...';
+      progressBar.style.width = pct + '%';
+      percentText.textContent = pct + '%';
+      bytesText.textContent = `${mbRead} MB / ${mbTotal} MB`;
+    };
+
+    window.onNativeDownloadComplete = function() {
+      const progressBar = document.getElementById('download-progress-bar');
+      const percentText = document.getElementById('download-percent');
+      const statusText = document.getElementById('download-status');
+      const installBtn = document.getElementById('btn-action-install');
+
+      statusText.textContent = 'Download Complete!';
+      percentText.textContent = '100%';
+      progressBar.style.width = '100%';
+      progressBar.style.background = '#10b981';
+      installBtn.style.display = 'block';
+    };
 
     async function enforceLatestVersion() {
       await new Promise(r => setTimeout(r, 400));
@@ -1299,16 +1317,26 @@
         if (!res.ok) return;
 
         const remote = await res.json();
+        if (remote.apk_url) targetApkUrl = remote.apk_url;
+
         if (installedVer < remote.required_apk_version) {
           const overlay = document.getElementById('lockdown-overlay');
           const text = document.getElementById('lockdown-text');
           const btn = document.getElementById('btn-download-apk');
+          const installBtn = document.getElementById('btn-action-install');
 
           if (remote.update_message) text.textContent = remote.update_message;
           overlay.style.display = 'flex';
           viewer.innerHTML = '';
 
           btn.onclick = () => runLiveDownload(targetApkUrl);
+          installBtn.onclick = () => {
+            if (window.AndroidUpdater) {
+              window.AndroidUpdater.installNow();
+            } else {
+              window.location.href = '/Reader.apk';
+            }
+          };
         }
       } catch (err) {
         console.log('Version check skipped: device offline');
@@ -1327,47 +1355,45 @@
       btn.style.display = 'none';
       progressBox.style.display = 'block';
 
+      // PATH A: Native Java Downloader & Auto-Installer (Streams 0->100% and opens Android Package Installer)
+      if (window.AndroidUpdater) {
+        statusText.textContent = 'Starting native download...';
+        window.AndroidUpdater.startUpdate(url);
+        return;
+      }
+
+      // PATH B: Fallback for older v1 WebView without native bridge
       try {
         statusText.textContent = 'Connecting to server...';
-        const response = await fetch(url);
+        const fetchUrl = '/Reader.apk?t=' + Date.now();
+        const response = await fetch(fetchUrl, { cache: 'no-store' });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
-        const contentLength = +response.headers.get('Content-Length') || (5.2 * 1024 * 1024);
+        const contentLength = +response.headers.get('Content-Length') || (4.5 * 1024 * 1024);
         const reader = response.body.getReader();
         let receivedLength = 0;
-        let chunks = [];
 
         statusText.textContent = 'Downloading update...';
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          chunks.push(value);
           receivedLength += value.length;
 
           const pct = Math.min(Math.round((receivedLength / contentLength) * 100), 100);
           progressBar.style.width = pct + '%';
           percentText.textContent = pct + '%';
-          bytesText.textContent = `${(receivedLength / (1024 * 1024)).toFixed(1)} MB / ${(contentLength / (1024 * 1024)).toFixed(1)} MB`;
+          bytesText.textContent = `${(receivedLength / (1024 * 1024)).toFixed(2)} MB / ${(contentLength / (1024 * 1024)).toFixed(2)} MB`;
         }
 
         statusText.textContent = 'Download Complete!';
         percentText.textContent = '100%';
         progressBar.style.background = '#10b981';
-
-        // Provide 1-tap install handoff without asking user to copy anything
-        const blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
-        const blobUrl = URL.createObjectURL(blob);
-        installBtn.href = blobUrl;
-        installBtn.download = 'Reader.apk';
         installBtn.style.display = 'block';
 
-        // Auto trigger
-        installBtn.click();
-
+        // Direct handoff to Android OS
+        window.location.href = '/Reader.apk';
       } catch (err) {
-        statusText.textContent = 'Retrying download...';
-        // Seamless fallback to direct same-origin link
         window.location.href = url;
       }
     }
