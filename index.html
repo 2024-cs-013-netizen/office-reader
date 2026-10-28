@@ -121,6 +121,7 @@
       padding: 12px 12px 64px 12px;
       touch-action: pan-x pan-y;
       position: relative;
+      scroll-behavior: smooth;
     }
 
     #zoom-sizer {
@@ -288,76 +289,70 @@
     tr:nth-child(even) td { background: #f8fafc; }
 
     /* =========================================================
-       HIGH-END ANIMATED PRESENTATION (PPTX & ODP) ENGINE
+       POLISHED VERTICAL-SCROLL PRESENTATION DECK (PPTX)
        ========================================================= */
-    .ppt-viewer-root {
+    .ppt-vertical-deck {
       display: flex;
       flex-direction: column;
       align-items: center;
+      gap: 22px;
       width: 100%;
-      max-width: 960px;
+      max-width: 820px;
       margin: 0 auto;
-      user-select: none;
+      padding-bottom: 40px;
     }
 
-    .ppt-deck-box {
+    .ppt-slide-card {
       position: relative;
       width: 100%;
-      background: #000000;
-      border-radius: 14px;
-      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px #232738;
+      background: #ffffff;
+      border-radius: 12px;
       overflow: hidden;
-      transition: all 0.3s ease;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px #232738;
+      animation: slideEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
 
-    /* Progress bar on top of the slide */
-    .ppt-deck-progress {
+    .ppt-slide-card:hover {
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px #4f46e5;
+    }
+
+    @keyframes slideEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .ppt-slide-badge {
       position: absolute;
-      top: 0;
-      left: 0;
-      height: 3px;
-      background: #4f46e5;
-      width: 0%;
-      z-index: 30;
-      transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
-      box-shadow: 0 0 8px rgba(79, 70, 229, 0.8);
+      top: 10px;
+      right: 12px;
+      background: rgba(15, 17, 26, 0.82);
+      backdrop-filter: blur(8px);
+      color: #82aaff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      z-index: 10;
+      pointer-events: none;
+      letter-spacing: 0.4px;
     }
 
-    .ppt-viewport {
+    .ppt-stage {
       position: relative;
       width: 100%;
-      overflow: hidden;
-      touch-action: pan-y pinch-zoom;
-      background: #0b0d14;
-    }
-
-    .ppt-track {
-      display: flex;
-      width: 100%;
-      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-      will-change: transform;
-    }
-
-    .ppt-slide {
-      min-width: 100%;
-      width: 100%;
-      flex-shrink: 0;
-      position: relative;
       container-type: inline-size;
       overflow: hidden;
       background: #ffffff;
-      box-sizing: border-box;
-      transform: scale(0.98);
-      opacity: 0.85;
-      transition: transform 0.38s ease, opacity 0.38s ease;
     }
 
-    .ppt-slide.active-slide {
-      transform: scale(1);
-      opacity: 1;
-    }
-
-    /* Shapes, text boxes & layout */
     .ppt-shape {
       position: absolute;
       display: flex;
@@ -381,7 +376,7 @@
       font-weight: 700;
       color: #0f172a;
       letter-spacing: -0.015em;
-      margin-bottom: 0.8cqi;
+      margin-bottom: 0.6cqi;
     }
 
     .ppt-p.is-bullet {
@@ -406,7 +401,6 @@
       pointer-events: none;
     }
 
-    /* Table support in PPT */
     .ppt-table {
       width: 100%;
       height: 100%;
@@ -420,149 +414,6 @@
       font-size: calc(1.2cqi + 4px);
       vertical-align: top;
       word-break: break-word;
-    }
-
-    /* Controls HUD Bar */
-    .ppt-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      width: 100%;
-      margin-top: 14px;
-      padding: 10px 14px;
-      background: #181a26;
-      border: 1px solid #282c3f;
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-      gap: 8px;
-      box-sizing: border-box;
-    }
-
-    .ppt-btn {
-      background: #25283a;
-      color: #82aaff;
-      border: 1px solid #333852;
-      padding: 9px 16px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-      white-space: nowrap;
-    }
-
-    .ppt-btn:active {
-      background: #4f46e5;
-      color: #ffffff;
-      border-color: #4f46e5;
-      transform: scale(0.97);
-    }
-
-    .ppt-btn:disabled {
-      opacity: 0.35;
-      cursor: not-allowed;
-      transform: none !important;
-    }
-
-    .ppt-pill-info {
-      font-size: 0.82rem;
-      font-weight: 700;
-      color: #e2e8f0;
-      background: #202334;
-      padding: 7px 14px;
-      border-radius: 8px;
-      border: 1px solid #2e344d;
-      white-space: nowrap;
-    }
-
-    .ppt-tools-right {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    /* Fullscreen Mode enhancements */
-    .ppt-deck-box:fullscreen {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: none !important;
-      border-radius: 0 !important;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      background: #000000;
-    }
-
-    .ppt-deck-box:-webkit-full-screen {
-      width: 100vw !important;
-      height: 100vh !important;
-      max-width: none !important;
-      border-radius: 0 !important;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      background: #000000;
-    }
-
-    /* Thumbnails drawer / overview */
-    .ppt-overview-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(11, 13, 20, 0.95);
-      backdrop-filter: blur(10px);
-      z-index: 999999;
-      padding: 20px;
-      flex-direction: column;
-      box-sizing: border-box;
-    }
-
-    .ppt-overview-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 14px;
-      border-bottom: 1px solid #2d3142;
-      color: #82aaff;
-      font-weight: 700;
-      font-size: 1rem;
-    }
-
-    .ppt-overview-grid {
-      flex: 1;
-      overflow-y: auto;
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 14px;
-      padding: 16px 0;
-    }
-
-    .ppt-thumb-card {
-      background: #181a26;
-      border: 1.5px solid #2d3142;
-      border-radius: 8px;
-      padding: 8px;
-      cursor: pointer;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.15s ease;
-    }
-
-    .ppt-thumb-card:hover, .ppt-thumb-card.active-thumb {
-      border-color: #4f46e5;
-      background: #202438;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-    }
-
-    .ppt-thumb-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #94a3b8;
     }
 
     /* PDF */
@@ -1164,7 +1015,7 @@
     }
 
     // ---------------------------------------------------------
-    // 5. HIGH-END ANIMATED PRESENTATION ENGINE (PPTX)
+    // 5. POLISHED VERTICAL-SCROLL PRESENTATION ENGINE (PPTX)
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
@@ -1210,27 +1061,13 @@
         return;
       }
 
-      updateTitle(file.name, `Deck (${slidePaths.length} Slides)`);
+      updateTitle(file.name, `${slidePaths.length} Slides`);
 
-      // Root Container
-      const root = document.createElement('div');
-      root.className = 'ppt-viewer-root';
+      // Top-to-bottom vertical container
+      const deckContainer = document.createElement('div');
+      deckContainer.className = 'ppt-vertical-deck';
 
-      const deckBox = document.createElement('div');
-      deckBox.className = 'ppt-deck-box';
-
-      const progressBar = document.createElement('div');
-      progressBar.className = 'ppt-deck-progress';
-      deckBox.appendChild(progressBar);
-
-      const viewport = document.createElement('div');
-      viewport.className = 'ppt-viewport';
-      viewport.style.aspectRatio = `${sldW} / ${sldH}`;
-
-      const track = document.createElement('div');
-      track.className = 'ppt-track';
-
-      // Parse & build all slides
+      // Parse & build all slides vertically
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
         const slideXmlStr = await zip.file(path).async('text');
@@ -1255,15 +1092,25 @@
           }
         }
 
-        const slide = document.createElement('div');
-        slide.className = `ppt-slide ${i === 0 ? 'active-slide' : ''}`;
-        slide.style.aspectRatio = `${sldW} / ${sldH}`;
+        const card = document.createElement('div');
+        card.className = 'ppt-slide-card';
+        card.style.animationDelay = `${Math.min(i * 0.04, 0.45)}s`;
+
+        // Modern Slide Number Pill
+        const badge = document.createElement('div');
+        badge.className = 'ppt-slide-badge';
+        badge.textContent = `Slide ${i + 1} / ${slidePaths.length}`;
+        card.appendChild(badge);
+
+        const stage = document.createElement('div');
+        stage.className = 'ppt-stage';
+        stage.style.aspectRatio = `${sldW} / ${sldH}`;
 
         // Slide Background
         const bgNode = xmlDoc.getElementsByTagName('p:bg')[0];
         if (bgNode) {
           const bgCol = parseColor(bgNode.getElementsByTagName('p:bgPr')[0]);
-          if (bgCol) slide.style.backgroundColor = bgCol;
+          if (bgCol) stage.style.backgroundColor = bgCol;
         }
 
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
@@ -1330,7 +1177,7 @@
                     pDiv.appendChild(dot);
                   }
 
-                  // Text runs with bold / color / formatting
+                  // Text runs with formatting
                   const runs = pNode.getElementsByTagName('a:r');
                   if (runs.length > 0) {
                     for (const r of runs) {
@@ -1359,7 +1206,7 @@
                   shapeDiv.appendChild(pDiv);
                 }
               }
-              slide.appendChild(shapeDiv);
+              stage.appendChild(shapeDiv);
 
             // Picture Element
             } else if (node.tagName === 'p:pic') {
@@ -1378,7 +1225,7 @@
                 img.style.top = `${(parseInt(off.getAttribute('y'), 10) / sldH) * 100}%`;
                 img.style.width = `${(parseInt(ext.getAttribute('cx'), 10) / sldW) * 100}%`;
                 img.style.height = `${(parseInt(ext.getAttribute('cy'), 10) / sldH) * 100}%`;
-                slide.appendChild(img);
+                stage.appendChild(img);
               }
 
             // Table Frame Element
@@ -1410,175 +1257,19 @@
                   tableEl.appendChild(tr);
                 }
                 tableContainer.appendChild(tableEl);
-                slide.appendChild(tableContainer);
+                stage.appendChild(tableContainer);
               }
             }
           }
         }
 
-        track.appendChild(slide);
+        card.appendChild(stage);
+        deckContainer.appendChild(card);
       }
 
-      viewport.appendChild(track);
-      deckBox.appendChild(viewport);
-      root.appendChild(deckBox);
-
-      // Slide Controls HUD Bar
-      const totalSlides = slidePaths.length;
-      let currentSlide = 0;
-
-      const toolbar = document.createElement('div');
-      toolbar.className = 'ppt-toolbar';
-
-      const prevBtn = document.createElement('button');
-      prevBtn.className = 'ppt-btn';
-      prevBtn.innerHTML = '◀ Prev';
-
-      const pillInfo = document.createElement('div');
-      pillInfo.className = 'ppt-pill-info';
-
-      const nextBtn = document.createElement('button');
-      nextBtn.className = 'ppt-btn';
-      nextBtn.innerHTML = 'Next ▶';
-
-      const toolsRight = document.createElement('div');
-      toolsRight.className = 'ppt-tools-right';
-
-      const gridBtn = document.createElement('button');
-      gridBtn.className = 'ppt-btn';
-      gridBtn.innerHTML = '▦ Slides';
-
-      const fullBtn = document.createElement('button');
-      fullBtn.className = 'ppt-btn';
-      fullBtn.innerHTML = '⛶ Present';
-
-      toolsRight.appendChild(gridBtn);
-      toolsRight.appendChild(fullBtn);
-
-      toolbar.appendChild(prevBtn);
-      toolbar.appendChild(pillInfo);
-      toolbar.appendChild(nextBtn);
-      toolbar.appendChild(toolsRight);
-      root.appendChild(toolbar);
-
-      // Slide Overview Modal (Grid / Jump Sheet)
-      const overviewModal = document.createElement('div');
-      overviewModal.className = 'ppt-overview-modal';
-      overviewModal.innerHTML = `
-        <div class="ppt-overview-header">
-          <span>Jump to Slide</span>
-          <button id="btn-close-overview" class="ppt-btn" style="padding: 6px 12px;">✕ Close</button>
-        </div>
-        <div class="ppt-overview-grid" id="ppt-grid-container"></div>
-      `;
-      document.body.appendChild(overviewModal);
-
-      const gridContainer = overviewModal.querySelector('#ppt-grid-container');
-      slidePaths.forEach((_, sIdx) => {
-        const thumb = document.createElement('div');
-        thumb.className = `ppt-thumb-card ${sIdx === 0 ? 'active-thumb' : ''}`;
-        thumb.innerHTML = `
-          <div style="width: 100%; aspect-ratio: 16/9; background: #202334; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #82aaff; font-weight: 700;">
-            ${sIdx + 1}
-          </div>
-          <span class="ppt-thumb-label">Slide ${sIdx + 1}</span>
-        `;
-        thumb.addEventListener('click', () => {
-          goToSlide(sIdx);
-          overviewModal.style.display = 'none';
-        });
-        gridContainer.appendChild(thumb);
-      });
-
-      overviewModal.querySelector('#btn-close-overview').addEventListener('click', () => {
-        overviewModal.style.display = 'none';
-      });
-
-      gridBtn.addEventListener('click', () => {
-        const allThumbs = gridContainer.querySelectorAll('.ppt-thumb-card');
-        allThumbs.forEach((t, idx) => t.classList.toggle('active-thumb', idx === currentSlide));
-        overviewModal.style.display = 'flex';
-      });
-
-      // Slide Navigation Functions
-      function goToSlide(index) {
-        currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
-        track.style.transform = `translateX(-${currentSlide * 100}%)`;
-
-        const allSlides = track.querySelectorAll('.ppt-slide');
-        allSlides.forEach((s, idx) => s.classList.toggle('active-slide', idx === currentSlide));
-
-        pillInfo.textContent = `${currentSlide + 1} / ${totalSlides}`;
-        progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
-
-        prevBtn.disabled = (currentSlide === 0);
-        nextBtn.disabled = (currentSlide === totalSlides - 1);
-      }
-
-      prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
-      nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
-
-      // Fullscreen Presentation Mode
-      fullBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          if (deckBox.requestFullscreen) {
-            deckBox.requestFullscreen();
-          } else if (deckBox.webkitRequestFullscreen) {
-            deckBox.webkitRequestFullscreen();
-          }
-        } else {
-          if (document.exitFullscreen) document.exitFullscreen();
-        }
-      });
-
-      // Swipe Gestures for Mobile
-      let touchStartX = 0;
-      let touchStartY = 0;
-      let touchDeltaX = 0;
-
-      viewport.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 1) {
-          touchStartX = e.touches[0].clientX;
-          touchStartY = e.touches[0].clientY;
-          touchDeltaX = 0;
-        }
-      }, { passive: true });
-
-      viewport.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 1) {
-          touchDeltaX = e.touches[0].clientX - touchStartX;
-          const touchDeltaY = e.touches[0].clientY - touchStartY;
-          // Only prevent vertical scroll if user is swiping horizontally
-          if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY) && Math.abs(touchDeltaX) > 10) {
-            e.preventDefault();
-          }
-        }
-      }, { passive: false });
-
-      viewport.addEventListener('touchend', () => {
-        if (Math.abs(touchDeltaX) > 45) {
-          if (touchDeltaX < 0) goToSlide(currentSlide + 1); // Swipe left -> Next
-          else goToSlide(currentSlide - 1); // Swipe right -> Prev
-        }
-        touchDeltaX = 0;
-      });
-
-      // Keyboard Arrow & Presentation Clicker Support
-      const keyHandler = (e) => {
-        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
-          goToSlide(currentSlide + 1);
-        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-          goToSlide(currentSlide - 1);
-        } else if (e.key === 'f' || e.key === 'F') {
-          fullBtn.click();
-        }
-      };
-      window.addEventListener('keydown', keyHandler);
-
-      // Initialize
-      goToSlide(0);
-      viewer.appendChild(root);
-      zoomHud.style.display = 'none';
+      viewer.appendChild(deckContainer);
+      zoomHud.style.display = 'flex';
+      fitDocumentToScreen();
     }
 
     // ---------------------------------------------------------
@@ -1858,7 +1549,7 @@
                 window.location.href = targetApkUrl;
               }
             } else {
-              // Direct system browser / download fallback so v1 users can tap and install directly!
+              // Direct fallback so v1 users can tap and install directly
               window.location.href = targetApkUrl;
             }
           };
