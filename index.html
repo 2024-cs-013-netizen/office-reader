@@ -358,31 +358,38 @@
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      padding: 0.6cqi 0.8cqi;
+      padding: 0.35cqi 0.65cqi;
       word-break: break-word;
-      line-height: 1.38;
+      line-height: 1.25;
       box-sizing: border-box;
-      overflow: hidden;
+      overflow: visible;
+      border-radius: 4px;
     }
 
     .ppt-p {
-      margin-bottom: 0.4cqi;
-      font-size: calc(1.4cqi + 5px);
+      margin: 0;
+      margin-bottom: 0.22cqi;
+      font-size: calc(1.15cqi + 4.5px);
+      line-height: 1.25;
       color: #1e293b;
     }
 
+    .ppt-p:last-child {
+      margin-bottom: 0 !important;
+    }
+
     .ppt-p.is-title {
-      font-size: calc(2.2cqi + 8px);
+      font-size: calc(1.75cqi + 5.5px);
       font-weight: 700;
       color: #0f172a;
       letter-spacing: -0.015em;
-      margin-bottom: 0.6cqi;
+      margin-bottom: 0.35cqi;
     }
 
     .ppt-p.is-bullet {
       display: flex;
       align-items: baseline;
-      gap: 0.6cqi;
+      gap: 0.5cqi;
     }
 
     .ppt-bullet-dot {
@@ -410,8 +417,8 @@
 
     .ppt-table td, .ppt-table th {
       border: 1px solid #cbd5e1;
-      padding: 0.4cqi 0.6cqi;
-      font-size: calc(1.2cqi + 4px);
+      padding: 0.35cqi 0.55cqi;
+      font-size: calc(1.15cqi + 4px);
       vertical-align: top;
       word-break: break-word;
     }
@@ -1050,6 +1057,17 @@
         return null;
       }
 
+      function isDarkColor(hex) {
+        if (!hex || typeof hex !== 'string' || !hex.startsWith('#')) return false;
+        let c = hex.slice(1);
+        if (c.length === 3) c = c.split('').map(x => x + x).join('');
+        if (c.length !== 6) return false;
+        const r = parseInt(c.slice(0, 2), 16);
+        const g = parseInt(c.slice(2, 4), 16);
+        const b = parseInt(c.slice(4, 6), 16);
+        return (r * 299 + g * 587 + b * 114) / 1000 < 135;
+      }
+
       const slidePaths = [];
       zip.forEach((path) => {
         if (/^ppt\/slides\/slide\d+\.xml$/i.test(path)) slidePaths.push(path);
@@ -1135,11 +1153,13 @@
               shapeDiv.style.left = `${(pos.x / sldW) * 100}%`;
               shapeDiv.style.top = `${(pos.y / sldH) * 100}%`;
               shapeDiv.style.width = `${(pos.cx / sldW) * 100}%`;
-              shapeDiv.style.height = `${(pos.cy / sldH) * 100}%`;
+              shapeDiv.style.minHeight = `${(pos.cy / sldH) * 100}%`;
+              shapeDiv.style.height = 'auto';
 
               // Shape background fill & border
+              let shapeFill = null;
               if (spPr) {
-                const shapeFill = parseColor(spPr);
+                shapeFill = parseColor(spPr);
                 if (shapeFill) shapeDiv.style.backgroundColor = shapeFill;
                 const ln = spPr.getElementsByTagName('a:ln')[0];
                 if (ln) {
@@ -1148,8 +1168,21 @@
                 }
               }
 
+              const isDarkBg = isDarkColor(shapeFill);
+
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
+                // Vertical alignment from bodyPr (anchor="ctr" | "b" | "t")
+                const bodyPr = txBody.getElementsByTagName('a:bodyPr')[0];
+                const anchor = bodyPr?.getAttribute('anchor');
+                if (anchor === 'ctr') {
+                  shapeDiv.style.justifyContent = 'center';
+                } else if (anchor === 'b') {
+                  shapeDiv.style.justifyContent = 'flex-end';
+                } else {
+                  shapeDiv.style.justifyContent = 'flex-start';
+                }
+
                 const paras = txBody.getElementsByTagName('a:p');
                 for (let pIdx = 0; pIdx < paras.length; pIdx++) {
                   const pNode = paras[pIdx];
@@ -1159,6 +1192,19 @@
                   const pDiv = document.createElement('div');
                   pDiv.className = 'ppt-p';
 
+                  // Horizontal alignment from pPr (algn="ctr" | "r" | "just")
+                  const pPr = pNode.getElementsByTagName('a:pPr')[0];
+                  const algn = pPr?.getAttribute('algn');
+                  if (algn === 'ctr') {
+                    pDiv.style.textAlign = 'center';
+                  } else if (algn === 'r') {
+                    pDiv.style.textAlign = 'right';
+                  } else if (algn === 'just') {
+                    pDiv.style.textAlign = 'justify';
+                  } else {
+                    pDiv.style.textAlign = 'left';
+                  }
+
                   // Title heuristic (first short paragraph on slide or title placeholder)
                   const ph = node.getElementsByTagName('p:nvSpPr')[0]?.getElementsByTagName('p:nvPr')[0]?.getElementsByTagName('p:ph')[0];
                   const phType = ph ? ph.getAttribute('type') : null;
@@ -1167,7 +1213,6 @@
                   }
 
                   // Bullet check
-                  const pPr = pNode.getElementsByTagName('a:pPr')[0];
                   const hasBullet = pPr && (pPr.getElementsByTagName('a:buChar').length > 0 || pPr.getElementsByTagName('a:buAutoNum').length > 0);
                   if (hasBullet) {
                     pDiv.classList.add('is-bullet');
@@ -1176,6 +1221,10 @@
                     dot.textContent = '•';
                     pDiv.appendChild(dot);
                   }
+
+                  // Default font size from pPr > defRPr if set
+                  const defRPr = pPr?.getElementsByTagName('a:defRPr')[0];
+                  const pDefSz = defRPr?.getAttribute('sz');
 
                   // Text runs with formatting
                   const runs = pNode.getElementsByTagName('a:r');
@@ -1188,18 +1237,35 @@
                       span.textContent = tNode.textContent;
 
                       const rPr = r.getElementsByTagName('a:rPr')[0];
+                      const runSz = rPr?.getAttribute('sz') || pDefSz;
+                      if (runSz) {
+                        const pt = parseInt(runSz, 10) / 100;
+                        if (pt > 0) {
+                          const cqi = (pt * 12700 / sldW) * 100;
+                          span.style.fontSize = `calc(${cqi.toFixed(2)}cqi + 3px)`;
+                        }
+                      }
+
                       if (rPr) {
                         if (rPr.getAttribute('b') === '1') span.style.fontWeight = '700';
                         if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
                         if (rPr.getAttribute('u') === 'sng') span.style.textDecoration = 'underline';
                         const textColor = parseColor(rPr);
-                        if (textColor) span.style.color = textColor;
+                        if (textColor) {
+                          span.style.color = textColor;
+                        } else if (isDarkBg) {
+                          span.style.color = '#ffffff';
+                        }
+                      } else if (isDarkBg) {
+                        span.style.color = '#ffffff';
                       }
+
                       pDiv.appendChild(span);
                     }
                   } else {
                     const fallbackSpan = document.createElement('span');
                     fallbackSpan.textContent = pText;
+                    if (isDarkBg) fallbackSpan.style.color = '#ffffff';
                     pDiv.appendChild(fallbackSpan);
                   }
 
