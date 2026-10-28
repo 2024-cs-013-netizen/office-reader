@@ -287,60 +287,282 @@
     th { background: #f1f5f9; font-weight: 700; color: #0f172a; }
     tr:nth-child(even) td { background: #f8fafc; }
 
-    /* PPTX */
-    .ppt-slide-card {
-      background: #181a24;
-      border-radius: 10px;
-      margin: 0 auto 24px auto;
-      box-shadow: 0 4px 18px rgba(0,0,0,0.35);
-      width: 760px;
-      border: 1px solid #282c3f;
-    }
-    .ppt-slide-header {
-      background: #202332;
-      color: #8da2fb;
-      padding: 7px 14px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
+    /* =========================================================
+       HIGH-END ANIMATED PRESENTATION (PPTX & ODP) ENGINE
+       ========================================================= */
+    .ppt-viewer-root {
       display: flex;
-      justify-content: space-between;
-      border-bottom: 1px solid #282c3f;
-      border-radius: 10px 10px 0 0;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      user-select: none;
     }
-    .ppt-stage {
+
+    .ppt-deck-box {
       position: relative;
       width: 100%;
-      container-type: inline-size;
-      background: #ffffff;
-      border-radius: 0 0 10px 10px;
+      background: #000000;
+      border-radius: 14px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px #232738;
       overflow: hidden;
+      transition: all 0.3s ease;
     }
+
+    /* Progress bar on top of the slide */
+    .ppt-deck-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: #4f46e5;
+      width: 0%;
+      z-index: 30;
+      transition: width 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+      box-shadow: 0 0 8px rgba(79, 70, 229, 0.8);
+    }
+
+    .ppt-viewport {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      touch-action: pan-y pinch-zoom;
+      background: #0b0d14;
+    }
+
+    .ppt-track {
+      display: flex;
+      width: 100%;
+      transition: transform 0.38s cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+    }
+
+    .ppt-slide {
+      min-width: 100%;
+      width: 100%;
+      flex-shrink: 0;
+      position: relative;
+      container-type: inline-size;
+      overflow: hidden;
+      background: #ffffff;
+      box-sizing: border-box;
+      transform: scale(0.98);
+      opacity: 0.85;
+      transition: transform 0.38s ease, opacity 0.38s ease;
+    }
+
+    .ppt-slide.active-slide {
+      transform: scale(1);
+      opacity: 1;
+    }
+
+    /* Shapes, text boxes & layout */
     .ppt-shape {
       position: absolute;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
-      padding: 4px 8px;
+      padding: 0.6cqi 0.8cqi;
+      word-break: break-word;
+      line-height: 1.38;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .ppt-p {
+      margin-bottom: 0.4cqi;
+      font-size: calc(1.4cqi + 5px);
+      color: #1e293b;
+    }
+
+    .ppt-p.is-title {
+      font-size: calc(2.2cqi + 8px);
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -0.015em;
+      margin-bottom: 0.8cqi;
+    }
+
+    .ppt-p.is-bullet {
+      display: flex;
+      align-items: baseline;
+      gap: 0.6cqi;
+    }
+
+    .ppt-bullet-dot {
+      color: #4f46e5;
+      font-size: 0.8em;
+      flex-shrink: 0;
+    }
+
+    .ppt-run {
+      display: inline;
+    }
+
+    .ppt-pic {
+      position: absolute;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    /* Table support in PPT */
+    .ppt-table {
+      width: 100%;
+      height: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .ppt-table td, .ppt-table th {
+      border: 1px solid #cbd5e1;
+      padding: 0.4cqi 0.6cqi;
+      font-size: calc(1.2cqi + 4px);
+      vertical-align: top;
       word-break: break-word;
     }
-    .ppt-pic { position: absolute; object-fit: contain; }
-    .ppt-table-box { position: absolute; overflow: auto; }
-    .ppt-smartart-fallback {
-      position: absolute;
-      inset: 18% 6% 8% 6%;
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 10px;
+
+    /* Controls HUD Bar */
+    .ppt-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #181a26;
+      border: 1px solid #282c3f;
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      gap: 8px;
+      box-sizing: border-box;
     }
-    .ppt-smartart-node {
-      background: #eff6ff;
-      border: 1.5px solid #3b82f6;
-      color: #1e293b;
+
+    .ppt-btn {
+      background: #25283a;
+      color: #82aaff;
+      border: 1px solid #333852;
+      padding: 9px 16px;
       border-radius: 8px;
-      padding: 10px;
-      font-size: 13px;
-      font-weight: 500;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+
+    .ppt-btn:active {
+      background: #4f46e5;
+      color: #ffffff;
+      border-color: #4f46e5;
+      transform: scale(0.97);
+    }
+
+    .ppt-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .ppt-pill-info {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: #202334;
+      padding: 7px 14px;
+      border-radius: 8px;
+      border: 1px solid #2e344d;
+      white-space: nowrap;
+    }
+
+    .ppt-tools-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Fullscreen Mode enhancements */
+    .ppt-deck-box:fullscreen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      border-radius: 0 !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #000000;
+    }
+
+    .ppt-deck-box:-webkit-full-screen {
+      width: 100vw !important;
+      height: 100vh !important;
+      max-width: none !important;
+      border-radius: 0 !important;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      background: #000000;
+    }
+
+    /* Thumbnails drawer / overview */
+    .ppt-overview-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 13, 20, 0.95);
+      backdrop-filter: blur(10px);
+      z-index: 999999;
+      padding: 20px;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    .ppt-overview-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #2d3142;
+      color: #82aaff;
+      font-weight: 700;
+      font-size: 1rem;
+    }
+
+    .ppt-overview-grid {
+      flex: 1;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 14px;
+      padding: 16px 0;
+    }
+
+    .ppt-thumb-card {
+      background: #181a26;
+      border: 1.5px solid #2d3142;
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .ppt-thumb-card:hover, .ppt-thumb-card.active-thumb {
+      border-color: #4f46e5;
+      background: #202438;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+    }
+
+    .ppt-thumb-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #94a3b8;
     }
 
     /* PDF */
@@ -942,7 +1164,7 @@
     }
 
     // ---------------------------------------------------------
-    // 5. POWERPOINT (PPTX) ENGINE
+    // 5. HIGH-END ANIMATED PRESENTATION ENGINE (PPTX)
     // ---------------------------------------------------------
     async function renderPptx(file) {
       viewer.innerHTML = '';
@@ -963,16 +1185,16 @@
 
       const themeColors = {
         'dk1': '#111827', 'lt1': '#ffffff', 'dk2': '#1f2937', 'lt2': '#f3f4f6',
-        'accent1': '#2563eb', 'accent2': '#dc2626', 'accent3': '#16a34a',
-        'accent4': '#9333ea', 'accent5': '#0891b2', 'accent6': '#ea580c',
-        'tx1': '#111827', 'tx2': '#374151', 'bg1': '#ffffff', 'bg2': '#f3f4f6'
+        'accent1': '#3b82f6', 'accent2': '#ef4444', 'accent3': '#10b981',
+        'accent4': '#a855f7', 'accent5': '#06b6d4', 'accent6': '#f97316',
+        'tx1': '#0f172a', 'tx2': '#475569', 'bg1': '#ffffff', 'bg2': '#f8fafc'
       };
 
-      function resolveColor(elem) {
-        if (!elem) return null;
-        const srgb = elem.getElementsByTagName('a:srgbClr')[0];
+      function parseColor(el) {
+        if (!el) return null;
+        const srgb = el.getElementsByTagName('a:srgbClr')[0];
         if (srgb) return '#' + srgb.getAttribute('val');
-        const scheme = elem.getElementsByTagName('a:schemeClr')[0];
+        const scheme = el.getElementsByTagName('a:schemeClr')[0];
         if (scheme) return themeColors[scheme.getAttribute('val')] || null;
         return null;
       }
@@ -983,13 +1205,38 @@
       });
       slidePaths.sort((a, b) => parseInt(a.match(/slide(\d+)\.xml/i)[1], 10) - parseInt(b.match(/slide(\d+)\.xml/i)[1], 10));
 
-      updateTitle(file.name, `${slidePaths.length} Slides`);
+      if (slidePaths.length === 0) {
+        showError('No slides found in this presentation.');
+        return;
+      }
 
+      updateTitle(file.name, `Deck (${slidePaths.length} Slides)`);
+
+      // Root Container
+      const root = document.createElement('div');
+      root.className = 'ppt-viewer-root';
+
+      const deckBox = document.createElement('div');
+      deckBox.className = 'ppt-deck-box';
+
+      const progressBar = document.createElement('div');
+      progressBar.className = 'ppt-deck-progress';
+      deckBox.appendChild(progressBar);
+
+      const viewport = document.createElement('div');
+      viewport.className = 'ppt-viewport';
+      viewport.style.aspectRatio = `${sldW} / ${sldH}`;
+
+      const track = document.createElement('div');
+      track.className = 'ppt-track';
+
+      // Parse & build all slides
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
         const slideXmlStr = await zip.file(path).async('text');
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
+        // Extract images relationship map
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
         const imgMap = {};
         if (zip.file(relsPath)) {
@@ -1008,56 +1255,121 @@
           }
         }
 
-        const card = document.createElement('div');
-        card.className = 'ppt-slide-card';
-        const header = document.createElement('div');
-        header.className = 'ppt-slide-header';
-        header.innerHTML = `<span>Slide ${i + 1}</span><span>${slidePaths.length} Total</span>`;
-        card.appendChild(header);
+        const slide = document.createElement('div');
+        slide.className = `ppt-slide ${i === 0 ? 'active-slide' : ''}`;
+        slide.style.aspectRatio = `${sldW} / ${sldH}`;
 
-        const stage = document.createElement('div');
-        stage.className = 'ppt-stage';
-        stage.style.aspectRatio = `${sldW} / ${sldH}`;
+        // Slide Background
+        const bgNode = xmlDoc.getElementsByTagName('p:bg')[0];
+        if (bgNode) {
+          const bgCol = parseColor(bgNode.getElementsByTagName('p:bgPr')[0]);
+          if (bgCol) slide.style.backgroundColor = bgCol;
+        }
 
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
         if (spTree) {
           for (const node of spTree.children) {
+            // Text Shape
             if (node.tagName === 'p:sp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
               const off = xfrm?.getElementsByTagName('a:off')[0];
               const ext = xfrm?.getElementsByTagName('a:ext')[0];
-              let pos = (off && ext) ? {
+
+              const pos = (off && ext) ? {
                 x: parseInt(off.getAttribute('x'), 10),
                 y: parseInt(off.getAttribute('y'), 10),
                 cx: parseInt(ext.getAttribute('cx'), 10),
                 cy: parseInt(ext.getAttribute('cy'), 10)
-              } : { x: sldW * 0.05, y: sldH * 0.15, cx: sldW * 0.9, cy: sldH * 0.75 };
+              } : { x: sldW * 0.06, y: sldH * 0.15, cx: sldW * 0.88, cy: sldH * 0.72 };
 
               const shapeDiv = document.createElement('div');
               shapeDiv.className = 'ppt-shape';
               shapeDiv.style.left = `${(pos.x / sldW) * 100}%`;
               shapeDiv.style.top = `${(pos.y / sldH) * 100}%`;
               shapeDiv.style.width = `${(pos.cx / sldW) * 100}%`;
+              shapeDiv.style.height = `${(pos.cy / sldH) * 100}%`;
+
+              // Shape background fill & border
+              if (spPr) {
+                const shapeFill = parseColor(spPr);
+                if (shapeFill) shapeDiv.style.backgroundColor = shapeFill;
+                const ln = spPr.getElementsByTagName('a:ln')[0];
+                if (ln) {
+                  const borderCol = parseColor(ln);
+                  if (borderCol) shapeDiv.style.border = `1px solid ${borderCol}`;
+                }
+              }
 
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
-                for (const p of txBody.getElementsByTagName('a:p')) {
+                const paras = txBody.getElementsByTagName('a:p');
+                for (let pIdx = 0; pIdx < paras.length; pIdx++) {
+                  const pNode = paras[pIdx];
+                  const pText = pNode.textContent.trim();
+                  if (!pText) continue;
+
                   const pDiv = document.createElement('div');
-                  pDiv.style.marginBottom = '4px';
-                  pDiv.style.color = '#111827';
-                  pDiv.style.fontSize = '15px';
-                  pDiv.textContent = p.textContent;
-                  if (pDiv.textContent.trim()) shapeDiv.appendChild(pDiv);
+                  pDiv.className = 'ppt-p';
+
+                  // Title heuristic (first short paragraph on slide or title placeholder)
+                  const ph = node.getElementsByTagName('p:nvSpPr')[0]?.getElementsByTagName('p:nvPr')[0]?.getElementsByTagName('p:ph')[0];
+                  const phType = ph ? ph.getAttribute('type') : null;
+                  if (phType === 'title' || phType === 'ctrTitle' || (pIdx === 0 && pText.length < 50 && i === 0)) {
+                    pDiv.classList.add('is-title');
+                  }
+
+                  // Bullet check
+                  const pPr = pNode.getElementsByTagName('a:pPr')[0];
+                  const hasBullet = pPr && (pPr.getElementsByTagName('a:buChar').length > 0 || pPr.getElementsByTagName('a:buAutoNum').length > 0);
+                  if (hasBullet) {
+                    pDiv.classList.add('is-bullet');
+                    const dot = document.createElement('span');
+                    dot.className = 'ppt-bullet-dot';
+                    dot.textContent = '•';
+                    pDiv.appendChild(dot);
+                  }
+
+                  // Text runs with bold / color / formatting
+                  const runs = pNode.getElementsByTagName('a:r');
+                  if (runs.length > 0) {
+                    for (const r of runs) {
+                      const tNode = r.getElementsByTagName('a:t')[0];
+                      if (!tNode) continue;
+                      const span = document.createElement('span');
+                      span.className = 'ppt-run';
+                      span.textContent = tNode.textContent;
+
+                      const rPr = r.getElementsByTagName('a:rPr')[0];
+                      if (rPr) {
+                        if (rPr.getAttribute('b') === '1') span.style.fontWeight = '700';
+                        if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
+                        if (rPr.getAttribute('u') === 'sng') span.style.textDecoration = 'underline';
+                        const textColor = parseColor(rPr);
+                        if (textColor) span.style.color = textColor;
+                      }
+                      pDiv.appendChild(span);
+                    }
+                  } else {
+                    const fallbackSpan = document.createElement('span');
+                    fallbackSpan.textContent = pText;
+                    pDiv.appendChild(fallbackSpan);
+                  }
+
+                  shapeDiv.appendChild(pDiv);
                 }
               }
-              stage.appendChild(shapeDiv);
+              slide.appendChild(shapeDiv);
+
+            // Picture Element
             } else if (node.tagName === 'p:pic') {
-              const xfrm = node.getElementsByTagName('p:spPr')[0]?.getElementsByTagName('a:xfrm')[0];
+              const spPr = node.getElementsByTagName('p:spPr')[0];
+              const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
               const blip = node.getElementsByTagName('a:blip')[0];
               const rId = blip?.getAttribute('r:embed') || blip?.getAttribute('embed');
               const off = xfrm?.getElementsByTagName('a:off')[0];
               const ext = xfrm?.getElementsByTagName('a:ext')[0];
+
               if (rId && imgMap[rId] && off && ext) {
                 const img = document.createElement('img');
                 img.src = imgMap[rId];
@@ -1066,17 +1378,207 @@
                 img.style.top = `${(parseInt(off.getAttribute('y'), 10) / sldH) * 100}%`;
                 img.style.width = `${(parseInt(ext.getAttribute('cx'), 10) / sldW) * 100}%`;
                 img.style.height = `${(parseInt(ext.getAttribute('cy'), 10) / sldH) * 100}%`;
-                stage.appendChild(img);
+                slide.appendChild(img);
+              }
+
+            // Table Frame Element
+            } else if (node.tagName === 'p:graphicFrame') {
+              const xfrm = node.getElementsByTagName('p:xfrm')[0];
+              const off = xfrm?.getElementsByTagName('a:off')[0];
+              const ext = xfrm?.getElementsByTagName('a:ext')[0];
+              const tbl = node.getElementsByTagName('a:tbl')[0];
+
+              if (off && ext && tbl) {
+                const tableContainer = document.createElement('div');
+                tableContainer.className = 'ppt-shape';
+                tableContainer.style.left = `${(parseInt(off.getAttribute('x'), 10) / sldW) * 100}%`;
+                tableContainer.style.top = `${(parseInt(off.getAttribute('y'), 10) / sldH) * 100}%`;
+                tableContainer.style.width = `${(parseInt(ext.getAttribute('cx'), 10) / sldW) * 100}%`;
+                tableContainer.style.height = `${(parseInt(ext.getAttribute('cy'), 10) / sldH) * 100}%`;
+
+                const tableEl = document.createElement('table');
+                tableEl.className = 'ppt-table';
+                const rows = tbl.getElementsByTagName('a:tr');
+                for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+                  const tr = document.createElement('tr');
+                  const cells = rows[rIdx].getElementsByTagName('a:tc');
+                  for (let cIdx = 0; cIdx < cells.length; cIdx++) {
+                    const td = document.createElement(rIdx === 0 ? 'th' : 'td');
+                    td.textContent = cells[cIdx].textContent.trim();
+                    tr.appendChild(td);
+                  }
+                  tableEl.appendChild(tr);
+                }
+                tableContainer.appendChild(tableEl);
+                slide.appendChild(tableContainer);
               }
             }
           }
         }
 
-        card.appendChild(stage);
-        viewer.appendChild(card);
+        track.appendChild(slide);
       }
-      zoomHud.style.display = 'flex';
-      fitDocumentToScreen();
+
+      viewport.appendChild(track);
+      deckBox.appendChild(viewport);
+      root.appendChild(deckBox);
+
+      // Slide Controls HUD Bar
+      const totalSlides = slidePaths.length;
+      let currentSlide = 0;
+
+      const toolbar = document.createElement('div');
+      toolbar.className = 'ppt-toolbar';
+
+      const prevBtn = document.createElement('button');
+      prevBtn.className = 'ppt-btn';
+      prevBtn.innerHTML = '◀ Prev';
+
+      const pillInfo = document.createElement('div');
+      pillInfo.className = 'ppt-pill-info';
+
+      const nextBtn = document.createElement('button');
+      nextBtn.className = 'ppt-btn';
+      nextBtn.innerHTML = 'Next ▶';
+
+      const toolsRight = document.createElement('div');
+      toolsRight.className = 'ppt-tools-right';
+
+      const gridBtn = document.createElement('button');
+      gridBtn.className = 'ppt-btn';
+      gridBtn.innerHTML = '▦ Slides';
+
+      const fullBtn = document.createElement('button');
+      fullBtn.className = 'ppt-btn';
+      fullBtn.innerHTML = '⛶ Present';
+
+      toolsRight.appendChild(gridBtn);
+      toolsRight.appendChild(fullBtn);
+
+      toolbar.appendChild(prevBtn);
+      toolbar.appendChild(pillInfo);
+      toolbar.appendChild(nextBtn);
+      toolbar.appendChild(toolsRight);
+      root.appendChild(toolbar);
+
+      // Slide Overview Modal (Grid / Jump Sheet)
+      const overviewModal = document.createElement('div');
+      overviewModal.className = 'ppt-overview-modal';
+      overviewModal.innerHTML = `
+        <div class="ppt-overview-header">
+          <span>Jump to Slide</span>
+          <button id="btn-close-overview" class="ppt-btn" style="padding: 6px 12px;">✕ Close</button>
+        </div>
+        <div class="ppt-overview-grid" id="ppt-grid-container"></div>
+      `;
+      document.body.appendChild(overviewModal);
+
+      const gridContainer = overviewModal.querySelector('#ppt-grid-container');
+      slidePaths.forEach((_, sIdx) => {
+        const thumb = document.createElement('div');
+        thumb.className = `ppt-thumb-card ${sIdx === 0 ? 'active-thumb' : ''}`;
+        thumb.innerHTML = `
+          <div style="width: 100%; aspect-ratio: 16/9; background: #202334; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; color: #82aaff; font-weight: 700;">
+            ${sIdx + 1}
+          </div>
+          <span class="ppt-thumb-label">Slide ${sIdx + 1}</span>
+        `;
+        thumb.addEventListener('click', () => {
+          goToSlide(sIdx);
+          overviewModal.style.display = 'none';
+        });
+        gridContainer.appendChild(thumb);
+      });
+
+      overviewModal.querySelector('#btn-close-overview').addEventListener('click', () => {
+        overviewModal.style.display = 'none';
+      });
+
+      gridBtn.addEventListener('click', () => {
+        const allThumbs = gridContainer.querySelectorAll('.ppt-thumb-card');
+        allThumbs.forEach((t, idx) => t.classList.toggle('active-thumb', idx === currentSlide));
+        overviewModal.style.display = 'flex';
+      });
+
+      // Slide Navigation Functions
+      function goToSlide(index) {
+        currentSlide = Math.max(0, Math.min(index, totalSlides - 1));
+        track.style.transform = `translateX(-${currentSlide * 100}%)`;
+
+        const allSlides = track.querySelectorAll('.ppt-slide');
+        allSlides.forEach((s, idx) => s.classList.toggle('active-slide', idx === currentSlide));
+
+        pillInfo.textContent = `${currentSlide + 1} / ${totalSlides}`;
+        progressBar.style.width = `${((currentSlide + 1) / totalSlides) * 100}%`;
+
+        prevBtn.disabled = (currentSlide === 0);
+        nextBtn.disabled = (currentSlide === totalSlides - 1);
+      }
+
+      prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
+      nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
+
+      // Fullscreen Presentation Mode
+      fullBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          if (deckBox.requestFullscreen) {
+            deckBox.requestFullscreen();
+          } else if (deckBox.webkitRequestFullscreen) {
+            deckBox.webkitRequestFullscreen();
+          }
+        } else {
+          if (document.exitFullscreen) document.exitFullscreen();
+        }
+      });
+
+      // Swipe Gestures for Mobile
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchDeltaX = 0;
+
+      viewport.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+          touchDeltaX = 0;
+        }
+      }, { passive: true });
+
+      viewport.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 1) {
+          touchDeltaX = e.touches[0].clientX - touchStartX;
+          const touchDeltaY = e.touches[0].clientY - touchStartY;
+          // Only prevent vertical scroll if user is swiping horizontally
+          if (Math.abs(touchDeltaX) > Math.abs(touchDeltaY) && Math.abs(touchDeltaX) > 10) {
+            e.preventDefault();
+          }
+        }
+      }, { passive: false });
+
+      viewport.addEventListener('touchend', () => {
+        if (Math.abs(touchDeltaX) > 45) {
+          if (touchDeltaX < 0) goToSlide(currentSlide + 1); // Swipe left -> Next
+          else goToSlide(currentSlide - 1); // Swipe right -> Prev
+        }
+        touchDeltaX = 0;
+      });
+
+      // Keyboard Arrow & Presentation Clicker Support
+      const keyHandler = (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+          goToSlide(currentSlide + 1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          goToSlide(currentSlide - 1);
+        } else if (e.key === 'f' || e.key === 'F') {
+          fullBtn.click();
+        }
+      };
+      window.addEventListener('keydown', keyHandler);
+
+      // Initialize
+      goToSlide(0);
+      viewer.appendChild(root);
+      zoomHud.style.display = 'none';
     }
 
     // ---------------------------------------------------------
@@ -1353,15 +1855,11 @@
               try {
                 window.AndroidUpdater.installNow();
               } catch (err) {
-                alert("Installation failed: " + err.message);
+                window.location.href = targetApkUrl;
               }
             } else {
-              // Detailed diagnostic explanation for v1.0
-              alert("🔍 DIAGNOSTIC STATUS:\n\n" +
-                    "• Installed on Phone: Version " + installedVer + "\n" +
-                    "• Native Updater Bridge: MISSING\n\n" +
-                    "Why this happens: Version 1.0 was installed before the native updater bridge was compiled.\n\n" +
-                    "Install the Version 2.0 APK from GitHub Actions once. From that moment on, all future updates will install automatically right on this screen!");
+              // Direct system browser / download fallback so v1 users can tap and install directly!
+              window.location.href = targetApkUrl;
             }
           };
         }
@@ -1421,6 +1919,7 @@
       } catch (err) {
         statusText.textContent = 'Download failed';
         progressBar.style.background = '#ef4444';
+        window.location.href = url;
       }
     }
 
