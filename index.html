@@ -15,6 +15,7 @@
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="editor.js"></script>
 
   <style>
     * { 
@@ -516,6 +517,8 @@
       <img src="icon.svg" alt="App Logo">
       <h1 id="doc-title">Reader</h1>
     </div>
+    <button id="btn-edit" class="btn" style="padding: 5px 12px; font-size: 0.75rem; display: none;">✏️ Edit</button>
+    <button id="btn-save" class="btn" style="padding: 5px 12px; font-size: 0.75rem; background: #10b981; display: none;">💾 Save</button>
     <span id="doc-badge">v3.0</span>
   </header>
 
@@ -602,6 +605,11 @@
     const zoomHud = document.getElementById('zoom-hud');
     const zoomLabel = document.getElementById('zoom-label');
     const btnBackZip = document.getElementById('btn-back-zip');
+
+    // Initialize Editor Engine
+    if (window.EditorEngine) {
+      EditorEngine.init('btn-edit', 'btn-save', 'viewer');
+    }
 
     let activeObjectUrls = [];
     let lastZipFile = null;
@@ -837,7 +845,6 @@
       deck.className = 'pdf-deck';
       viewer.appendChild(deck);
 
-      // Virtualized observer: only renders canvas when page scrolls near the screen
       pdfObserver = new IntersectionObserver((entries, observer) => {
         entries.forEach(async (entry) => {
           if (!entry.isIntersecting) return;
@@ -850,7 +857,6 @@
           const pageNum = parseInt(card.dataset.pageNum, 10);
           const page = await pdf.getPage(pageNum);
           
-          // Balanced scale for sharp text without out-of-memory crashes
           const viewport = page.getViewport({ scale: 1.25 });
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -863,7 +869,6 @@
         });
       }, { root: container, rootMargin: '300px 0px' });
 
-      // First pass: obtain page 1 dimensions to build lightweight placeholders
       const firstPage = await pdf.getPage(1);
       const sampleViewport = firstPage.getViewport({ scale: 1.25 });
       const aspect = sampleViewport.height / sampleViewport.width;
@@ -1385,6 +1390,11 @@
       const ext = fileName.includes('.') ? fileName.split('.').pop().toLowerCase() : '';
       const mime = (file.type || '').toLowerCase();
 
+      // Check format support for inline editing
+      if (window.EditorEngine) {
+        EditorEngine.checkSupport(file, ext);
+      }
+
       try {
         const headerSlice = await file.slice(0, 4).arrayBuffer();
         const headerBytes = new Uint8Array(headerSlice);
@@ -1493,12 +1503,10 @@
 
       try {
         let blob;
-        // Native browser streaming decode (zero UI blocking)
         try {
           const res = await fetch(`data:${safeMime};base64,${base64Data}`);
           blob = await res.blob();
         } catch (_) {
-          // Direct fallback
           const binaryString = atob(base64Data);
           const len = binaryString.length;
           const bytes = new Uint8Array(len);
