@@ -39,7 +39,7 @@ public class MainActivity extends Activity {
 
     private static final String LIVE_URL = "https://office-reader.vercel.app/";
     private static final int FILE_CHOOSER_REQ = 1001;
-    private static final int APP_VERSION = 2; // Native version stamp
+    private static final int APP_VERSION = 3; // Native version stamp
 
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
