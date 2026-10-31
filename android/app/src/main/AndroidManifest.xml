@@ -19,7 +19,8 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,11 +52,13 @@
             </intent-filter>
 
         </activity>
+
         <!-- Native ContentProvider to safely pass the APK to PackageInstaller -->
         <provider
             android:name=".MainActivity$GenericFileProvider"
             android:authorities="com.reader.app.provider"
             android:exported="false"
             android:grantUriPermissions="true" />
+            
     </application>
 </manifest>
