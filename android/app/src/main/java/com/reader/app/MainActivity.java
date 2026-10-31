@@ -24,6 +24,7 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.Toast;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -43,6 +44,7 @@ public class MainActivity extends Activity {
     private WebView webView;
     private ValueCallback<Uri[]> filePathCallback;
     private Uri pendingFileUri = null;
+    private Uri currentActiveUri = null; // Tracks the currently opened document
     private boolean pageReady = false;
 
     // -------------------------------------------------------------
@@ -121,8 +123,9 @@ public class MainActivity extends Activity {
             settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
         }
 
-        // Attach Native In-App Updater Bridge
+        // Attach Native Bridges
         webView.addJavascriptInterface(new AndroidUpdater(), "AndroidUpdater");
+        webView.addJavascriptInterface(new AndroidStorage(), "AndroidStorage");
 
         webView.setDownloadListener(new DownloadListener() {
             @Override
@@ -165,6 +168,46 @@ public class MainActivity extends Activity {
 
         captureIncomingIntent(getIntent());
         webView.loadUrl(LIVE_URL);
+    }
+
+    // -------------------------------------------------------------
+    // Native Bridge for In-Place File Overwrite (Zero Duplicates)
+    // -------------------------------------------------------------
+    public class AndroidStorage {
+        @JavascriptInterface
+        public void overwriteOriginalFile(String base64Data) {
+            if (currentActiveUri == null) {
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, "No active file to overwrite.", Toast.LENGTH_SHORT).show());
+                return;
+            }
+
+            new Thread(() -> {
+                try {
+                    byte[] bytes = Base64.decode(base64Data, Base64.DEFAULT);
+                    OutputStream os;
+
+                    // "wt" mode truncates the file so shorter edits do not leave trailing garbage data
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        os = getContentResolver().openOutputStream(currentActiveUri, "wt");
+                    } else {
+                        os = getContentResolver().openOutputStream(currentActiveUri);
+                    }
+
+                    if (os == null) {
+                        throw new FileNotFoundException("Unable to open output stream");
+                    }
+
+                    os.write(bytes);
+                    os.flush();
+                    os.close();
+
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Changes saved directly to file!", Toast.LENGTH_SHORT).show());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> Toast.makeText(MainActivity.this, "Could not overwrite file (Read-only or restricted).", Toast.LENGTH_LONG).show());
+                }
+            }).start();
+        }
     }
 
     // Native Bridge for In-App Progress Bar & Automatic Package Installation
@@ -264,7 +307,6 @@ public class MainActivity extends Activity {
     private void triggerPackageInstaller(Uri apkUri) {
         if (apkUri == null) return;
         try {
-            // Check Android 8.0+ Unknown Sources Permission
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 if (!getPackageManager().canRequestPackageInstalls()) {
                     Intent settingsIntent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
@@ -274,7 +316,6 @@ public class MainActivity extends Activity {
                 }
             }
 
-            // Launch Native System Package Installer
             Intent install = new Intent(Intent.ACTION_VIEW);
             install.setDataAndType(apkUri, "application/vnd.android.package-archive");
             install.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
@@ -301,12 +342,15 @@ public class MainActivity extends Activity {
         String action = intent.getAction();
         if (Intent.ACTION_VIEW.equals(action)) {
             pendingFileUri = intent.getData();
+            currentActiveUri = pendingFileUri;
         } else if (Intent.ACTION_SEND.equals(action)) {
             pendingFileUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            currentActiveUri = pendingFileUri;
         }
     }
 
     private void sendUriToWebApp(Uri uri) {
+        currentActiveUri = uri;
         new Thread(() -> {
             try {
                 String mime = getContentResolver().getType(uri);
@@ -388,6 +432,9 @@ public class MainActivity extends Activity {
         if (requestCode == FILE_CHOOSER_REQ) {
             if (filePathCallback != null) {
                 Uri[] results = WebChromeClient.FileChooserParams.parseResult(resultCode, data);
+                if (results != null && results.length > 0) {
+                    currentActiveUri = results[0];
+                }
                 filePathCallback.onReceiveValue(results);
                 filePathCallback = null;
             }
