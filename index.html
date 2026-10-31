@@ -14,7 +14,6 @@
   <script src="https://unpkg.com/docx-preview/dist/docx-preview.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <style>
@@ -41,50 +40,50 @@
     header { 
       padding: 10px 14px; 
       background: #1a1c29; 
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between; 
+      gap: 10px; 
       border-bottom: 1px solid #2d3142; 
-      flex-shrink: 0;
+      flex-shrink: 0; 
     }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      min-width: 0;
-      flex: 1;
+    .header-left { 
+      display: flex; 
+      align-items: center; 
+      gap: 10px; 
+      min-width: 0; 
+      flex: 1; 
     }
     header img { width: 24px; height: 24px; flex-shrink: 0; }
     #doc-title { 
       font-size: 0.95rem; 
       font-weight: 600; 
-      color: #82aaff;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      color: #82aaff; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
     }
-    #doc-badge {
-      font-size: 0.7rem;
-      background: #282c3f;
-      color: #cbd5e1;
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-weight: 600;
-      display: inline-block;
-      flex-shrink: 0;
+    #doc-badge { 
+      font-size: 0.7rem; 
+      background: #282c3f; 
+      color: #cbd5e1; 
+      padding: 3px 8px; 
+      border-radius: 6px; 
+      font-weight: 600; 
+      display: inline-block; 
+      flex-shrink: 0; 
     }
 
     .upload-bar { 
       padding: 10px 14px; 
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      background: #12141f;
-      flex-shrink: 0;
-      border-bottom: 1px solid #1e2130;
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      flex-wrap: wrap; 
+      gap: 8px; 
+      background: #12141f; 
+      flex-shrink: 0; 
+      border-bottom: 1px solid #1e2130; 
     }
     input[type="file"] { display: none; }
     .btn { 
@@ -94,134 +93,134 @@
       border-radius: 8px; 
       cursor: pointer; 
       font-size: 0.85rem; 
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 600;
-      border: none;
-      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35);
+      display: inline-flex; 
+      align-items: center; 
+      gap: 8px; 
+      font-weight: 600; 
+      border: none; 
+      box-shadow: 0 2px 8px rgba(79, 70, 229, 0.35); 
     }
     .btn:active { background: #4338ca; transform: scale(0.97); }
-    .btn-secondary {
-      background: #25283a;
-      color: #82aaff;
-      box-shadow: none;
-      border: 1px solid #333852;
-      display: none;
+    .btn-secondary { 
+      background: #25283a; 
+      color: #82aaff; 
+      box-shadow: none; 
+      border: 1px solid #333852; 
+      display: none; 
     }
 
-    #viewer-container {
-      flex: 1;
-      width: 100%;
-      height: 100%;
-      overflow-x: auto !important;
-      overflow-y: auto !important;
-      -webkit-overflow-scrolling: touch;
-      background: #0f111a;
-      padding: 12px 12px 64px 12px;
-      touch-action: pan-x pan-y;
-      position: relative;
-      scroll-behavior: smooth;
+    #viewer-container { 
+      flex: 1; 
+      width: 100%; 
+      height: 100%; 
+      overflow-x: auto !important; 
+      overflow-y: auto !important; 
+      -webkit-overflow-scrolling: touch; 
+      background: #0f111a; 
+      padding: 12px 12px 64px 12px; 
+      touch-action: pan-x pan-y; 
+      position: relative; 
+      scroll-behavior: smooth; 
     }
 
-    #zoom-sizer {
-      position: relative;
-      overflow: hidden;
-      min-width: 100%;
+    #zoom-sizer { 
+      position: relative; 
+      overflow: hidden; 
+      min-width: 100%; 
     }
 
-    #zoom-wrapper {
-      display: inline-block;
-      transform-origin: 0 0;
-      min-width: 100%;
-      user-select: text;
+    #zoom-wrapper { 
+      display: inline-block; 
+      transform-origin: 0 0; 
+      min-width: 100%; 
+      user-select: text; 
     }
 
     #viewer { 
       background: transparent; 
       color: #000; 
-      width: 100%;
-      display: block;
+      width: 100%; 
+      display: block; 
     }
 
-    .empty-state {
-      color: #94a3b8;
-      text-align: center;
-      margin: 50px auto 0 auto;
-      max-width: 350px;
-      padding: 24px 16px;
-      border: 1px dashed #2d3142;
-      border-radius: 12px;
-      background: #141724;
+    .empty-state { 
+      color: #94a3b8; 
+      text-align: center; 
+      margin: 50px auto 0 auto; 
+      max-width: 350px; 
+      padding: 24px 16px; 
+      border: 1px dashed #2d3142; 
+      border-radius: 12px; 
+      background: #141724; 
     }
     .empty-state h2 { font-size: 1.05rem; color: #e2e8f0; margin-bottom: 6px; }
     .empty-state p { font-size: 0.82rem; line-height: 1.45; color: #94a3b8; }
-    .format-pills {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      justify-content: center;
-      margin-top: 14px;
+    .format-pills { 
+      display: flex; 
+      flex-wrap: wrap; 
+      gap: 6px; 
+      justify-content: center; 
+      margin-top: 14px; 
     }
-    .pill {
-      background: #1e2235;
-      color: #82aaff;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 4px 8px;
-      border-radius: 6px;
-      border: 1px solid #2d324a;
+    .pill { 
+      background: #1e2235; 
+      color: #82aaff; 
+      font-size: 0.7rem; 
+      font-weight: 600; 
+      padding: 4px 8px; 
+      border-radius: 6px; 
+      border: 1px solid #2d324a; 
     }
 
-    #zoom-hud {
-      position: fixed;
-      bottom: 16px;
-      right: 16px;
-      background: rgba(26, 28, 41, 0.92);
-      backdrop-filter: blur(8px);
-      border: 1px solid #2d3142;
-      border-radius: 10px;
-      display: none;
-      align-items: center;
-      padding: 4px;
-      gap: 4px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-      z-index: 50;
+    #zoom-hud { 
+      position: fixed; 
+      bottom: 16px; 
+      right: 16px; 
+      background: rgba(26, 28, 41, 0.92); 
+      backdrop-filter: blur(8px); 
+      border: 1px solid #2d3142; 
+      border-radius: 10px; 
+      display: none; 
+      align-items: center; 
+      padding: 4px; 
+      gap: 4px; 
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45); 
+      z-index: 50; 
     }
-    .hud-btn {
-      background: #25283a;
-      color: #e2e8f0;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 0.78rem;
-      font-weight: 600;
-      cursor: pointer;
+    .hud-btn { 
+      background: #25283a; 
+      color: #e2e8f0; 
+      border: none; 
+      border-radius: 6px; 
+      padding: 6px 10px; 
+      font-size: 0.78rem; 
+      font-weight: 600; 
+      cursor: pointer; 
     }
     .hud-btn:active { background: #4f46e5; color: #fff; }
-    #zoom-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #82aaff;
-      min-width: 44px;
-      text-align: center;
+    #zoom-label { 
+      font-size: 0.75rem; 
+      font-weight: 600; 
+      color: #82aaff; 
+      min-width: 44px; 
+      text-align: center; 
     }
 
-    .loader-box {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 14px;
-      padding-top: 80px;
+    .loader-box { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      gap: 14px; 
+      padding-top: 80px; 
     }
-    .spinner {
-      width: 36px;
-      height: 36px;
-      border: 3.5px solid #2d3142;
-      border-top-color: #82aaff;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+    .spinner { 
+      width: 36px; 
+      height: 36px; 
+      border: 3.5px solid #2d3142; 
+      border-top-color: #82aaff; 
+      border-radius: 50%; 
+      animation: spin 0.8s linear infinite; 
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loader-text { color: #82aaff; font-size: 0.9rem; font-weight: 500; text-align: center; }
@@ -230,16 +229,16 @@
     .docx-wrapper { background: transparent !important; padding: 0 !important; margin: 0 !important; display: block !important; }
     .docx-wrapper > section.docx, .doc-paper { 
       min-width: 650px !important; 
-      max-width: 840px;
+      max-width: 840px; 
       padding: 28px 24px !important; 
       margin: 0 auto 16px auto !important; 
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
-      background: #ffffff !important;
-      color: #1e293b;
-      border-radius: 6px;
-      overflow-x: auto;
-      line-height: 1.6;
-      font-size: 0.95rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important; 
+      background: #ffffff !important; 
+      color: #1e293b; 
+      border-radius: 6px; 
+      overflow-x: auto; 
+      line-height: 1.6; 
+      font-size: 0.95rem; 
     }
     .doc-paper h1, .doc-paper h2, .doc-paper h3 { color: #0f172a; margin: 14px 0 8px 0; }
     .doc-paper p { margin-bottom: 10px; }
@@ -247,33 +246,33 @@
     .doc-paper img { max-width: 100%; height: auto; margin: 8px 0; }
 
     /* EXCEL, CSV, TSV, ODS TABLES */
-    .excel-container {
-      background: #ffffff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-      overflow: hidden;
-      min-width: max-content;
+    .excel-container { 
+      background: #ffffff; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25); 
+      overflow: hidden; 
+      min-width: max-content; 
     }
-    .sheet-tabs {
-      display: flex;
-      gap: 6px;
-      padding: 8px 10px;
-      background: #1f2333;
-      overflow-x: auto;
-      border-bottom: 1px solid #2e344d;
-      position: sticky;
-      left: 0;
+    .sheet-tabs { 
+      display: flex; 
+      gap: 6px; 
+      padding: 8px 10px; 
+      background: #1f2333; 
+      overflow-x: auto; 
+      border-bottom: 1px solid #2e344d; 
+      position: sticky; 
+      left: 0; 
     }
-    .sheet-tab {
-      background: #2a2f45;
-      color: #94a3b8;
-      border: none;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
+    .sheet-tab { 
+      background: #2a2f45; 
+      color: #94a3b8; 
+      border: none; 
+      padding: 6px 14px; 
+      border-radius: 6px; 
+      font-size: 0.8rem; 
+      font-weight: 600; 
+      cursor: pointer; 
+      white-space: nowrap; 
     }
     .sheet-tab.active { background: #4f46e5; color: #ffffff; }
     .table-wrapper { width: 100%; overflow-x: auto; padding: 10px; }
@@ -283,261 +282,229 @@
       padding: 6px 12px; 
       font-size: 0.85rem; 
       text-align: left; 
-      color: #1e293b;
+      color: #1e293b; 
     }
     th { background: #f1f5f9; font-weight: 700; color: #0f172a; }
     tr:nth-child(even) td { background: #f8fafc; }
 
-    /* =========================================================
-       POLISHED VERTICAL-SCROLL PRESENTATION DECK (PPTX)
-       ========================================================= */
-    .ppt-vertical-deck {
+    /* PRESENTATION DECK (PPTX) */
+    .ppt-vertical-deck { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 22px; 
+      width: 100%; 
+      max-width: 820px; 
+      margin: 0 auto; 
+      padding-bottom: 40px; 
+    }
+
+    .ppt-slide-card { 
+      position: relative; 
+      width: 100%; 
+      background: #ffffff; 
+      border-radius: 12px; 
+      overflow: hidden; 
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px #232738; 
+      animation: slideEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; 
+    }
+
+    @keyframes slideEntrance { 
+      from { opacity: 0; transform: translateY(20px) scale(0.985); } 
+      to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
+
+    .ppt-slide-badge { 
+      position: absolute; 
+      top: 10px; 
+      right: 12px; 
+      background: rgba(15, 17, 26, 0.82); 
+      backdrop-filter: blur(8px); 
+      color: #82aaff; 
+      font-size: 0.72rem; 
+      font-weight: 700; 
+      padding: 4px 10px; 
+      border-radius: 6px; 
+      border: 1px solid rgba(255, 255, 255, 0.12); 
+      z-index: 10; 
+      pointer-events: none; 
+      letter-spacing: 0.4px; 
+    }
+
+    .ppt-stage { 
+      position: relative; 
+      width: 100%; 
+      container-type: inline-size; 
+      overflow: hidden; 
+      background: #ffffff; 
+    }
+
+    .ppt-shape { 
+      position: absolute; 
+      display: flex; 
+      flex-direction: column; 
+      justify-content: flex-start; 
+      padding: 0.35cqi 0.65cqi; 
+      word-break: break-word; 
+      line-height: 1.25; 
+      box-sizing: border-box; 
+      overflow: visible; 
+      border-radius: 4px; 
+    }
+
+    .ppt-p { 
+      margin: 0; 
+      margin-bottom: 0.22cqi; 
+      font-size: calc(1.15cqi + 4.5px); 
+      line-height: 1.25; 
+      color: #1e293b; 
+    }
+    .ppt-p:last-child { margin-bottom: 0 !important; }
+    .ppt-p.is-title { 
+      font-size: calc(1.75cqi + 5.5px); 
+      font-weight: 700; 
+      color: #0f172a; 
+      letter-spacing: -0.015em; 
+      margin-bottom: 0.35cqi; 
+    }
+    .ppt-p.is-bullet { display: flex; align-items: baseline; gap: 0.5cqi; }
+    .ppt-bullet-dot { color: #4f46e5; font-size: 0.8em; flex-shrink: 0; }
+    .ppt-run { display: inline; }
+    .ppt-pic { position: absolute; object-fit: contain; pointer-events: none; }
+    .ppt-table { width: 100%; height: 100%; border-collapse: collapse; table-layout: fixed; }
+    .ppt-table td, .ppt-table th { 
+      border: 1px solid #cbd5e1; 
+      padding: 0.35cqi 0.55cqi; 
+      font-size: calc(1.15cqi + 4px); 
+      vertical-align: top; 
+      word-break: break-word; 
+    }
+
+    /* PDF OPTIMIZED CONTAINER */
+    .pdf-deck {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 22px;
+      gap: 16px;
       width: 100%;
-      max-width: 820px;
-      margin: 0 auto;
-      padding-bottom: 40px;
     }
-
-    .ppt-slide-card {
-      position: relative;
-      width: 100%;
-      background: #ffffff;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4), 0 0 0 1px #232738;
-      animation: slideEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .ppt-slide-card:hover {
-      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55), 0 0 0 1px #4f46e5;
-    }
-
-    @keyframes slideEntrance {
-      from {
-        opacity: 0;
-        transform: translateY(20px) scale(0.985);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-
-    .ppt-slide-badge {
-      position: absolute;
-      top: 10px;
-      right: 12px;
-      background: rgba(15, 17, 26, 0.82);
-      backdrop-filter: blur(8px);
-      color: #82aaff;
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 6px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      z-index: 10;
-      pointer-events: none;
-      letter-spacing: 0.4px;
-    }
-
-    .ppt-stage {
-      position: relative;
-      width: 100%;
-      container-type: inline-size;
-      overflow: hidden;
-      background: #ffffff;
-    }
-
-    .ppt-shape {
-      position: absolute;
+    .pdf-page-card { 
+      background: #ffffff; 
+      border-radius: 8px; 
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35); 
       display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      padding: 0.35cqi 0.65cqi;
-      word-break: break-word;
-      line-height: 1.25;
-      box-sizing: border-box;
-      overflow: visible;
-      border-radius: 4px;
-    }
-
-    .ppt-p {
-      margin: 0;
-      margin-bottom: 0.22cqi;
-      font-size: calc(1.15cqi + 4.5px);
-      line-height: 1.25;
-      color: #1e293b;
-    }
-
-    .ppt-p:last-child {
-      margin-bottom: 0 !important;
-    }
-
-    .ppt-p.is-title {
-      font-size: calc(1.75cqi + 5.5px);
-      font-weight: 700;
-      color: #0f172a;
-      letter-spacing: -0.015em;
-      margin-bottom: 0.35cqi;
-    }
-
-    .ppt-p.is-bullet {
-      display: flex;
-      align-items: baseline;
-      gap: 0.5cqi;
-    }
-
-    .ppt-bullet-dot {
-      color: #4f46e5;
-      font-size: 0.8em;
-      flex-shrink: 0;
-    }
-
-    .ppt-run {
-      display: inline;
-    }
-
-    .ppt-pic {
-      position: absolute;
-      object-fit: contain;
-      pointer-events: none;
-    }
-
-    .ppt-table {
-      width: 100%;
-      height: 100%;
-      border-collapse: collapse;
-      table-layout: fixed;
-    }
-
-    .ppt-table td, .ppt-table th {
-      border: 1px solid #cbd5e1;
-      padding: 0.35cqi 0.55cqi;
-      font-size: calc(1.15cqi + 4px);
-      vertical-align: top;
-      word-break: break-word;
-    }
-
-    /* PDF */
-    .pdf-page-card {
-      background: #ffffff;
-      border-radius: 8px;
-      margin: 0 auto 20px auto;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-      width: max-content;
+      align-items: center;
+      justify-content: center;
+      position: relative;
       overflow: hidden;
+      min-height: 200px;
     }
-    .pdf-page-card canvas { display: block; }
+    .pdf-page-card canvas { display: block; width: 100%; height: 100%; }
 
     /* CODE & TEXT */
-    .code-container {
-      background: #1e222a;
-      border: 1px solid #333842;
-      border-radius: 8px;
-      overflow: hidden;
-      min-width: 100%;
+    .code-container { 
+      background: #1e222a; 
+      border: 1px solid #333842; 
+      border-radius: 8px; 
+      overflow: hidden; 
+      min-width: 100%; 
     }
-    .code-header {
-      background: #161920;
-      padding: 8px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #333842;
-      color: #94a3b8;
-      font-size: 0.78rem;
-      font-weight: 600;
+    .code-header { 
+      background: #161920; 
+      padding: 8px 14px; 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      border-bottom: 1px solid #333842; 
+      color: #94a3b8; 
+      font-size: 0.78rem; 
+      font-weight: 600; 
     }
-    .copy-btn {
-      background: #333842;
-      color: #fff;
-      border: none;
-      padding: 4px 10px;
-      border-radius: 5px;
-      font-size: 0.75rem;
-      cursor: pointer;
+    .copy-btn { 
+      background: #333842; 
+      color: #fff; 
+      border: none; 
+      padding: 4px 10px; 
+      border-radius: 5px; 
+      font-size: 0.75rem; 
+      cursor: pointer; 
     }
-    .code-body {
-      padding: 14px;
-      overflow-x: auto;
-      font-family: Consolas, monospace;
-      font-size: 0.85rem;
-      line-height: 1.55;
-      color: #e2e8f0;
-      white-space: pre-wrap;
-      word-break: break-word;
+    .code-body { 
+      padding: 14px; 
+      overflow-x: auto; 
+      font-family: Consolas, monospace; 
+      font-size: 0.85rem; 
+      line-height: 1.55; 
+      color: #e2e8f0; 
+      white-space: pre-wrap; 
+      word-break: break-word; 
     }
 
     /* ZIP EXPLORER */
-    .zip-container {
-      max-width: 680px;
-      margin: 0 auto;
-      background: #181a26;
-      border: 1px solid #2d3142;
-      border-radius: 10px;
-      overflow: hidden;
+    .zip-container { 
+      max-width: 680px; 
+      margin: 0 auto; 
+      background: #181a26; 
+      border: 1px solid #2d3142; 
+      border-radius: 10px; 
+      overflow: hidden; 
     }
-    .zip-header {
-      background: #202334;
-      padding: 12px 16px;
-      color: #82aaff;
-      font-weight: 600;
-      font-size: 0.9rem;
-      border-bottom: 1px solid #2d3142;
+    .zip-header { 
+      background: #202334; 
+      padding: 12px 16px; 
+      color: #82aaff; 
+      font-weight: 600; 
+      font-size: 0.9rem; 
+      border-bottom: 1px solid #2d3142; 
     }
-    .zip-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 12px 16px;
-      border-bottom: 1px solid #222638;
-      color: #e2e8f0;
-      font-size: 0.85rem;
-      cursor: pointer;
+    .zip-item { 
+      display: flex; 
+      justify-content: space-between; 
+      padding: 12px 16px; 
+      border-bottom: 1px solid #222638; 
+      color: #e2e8f0; 
+      font-size: 0.85rem; 
+      cursor: pointer; 
     }
     .zip-item:active { background: #282c42; }
 
     /* HARD KILL-SWITCH / FORCED UPDATE OVERLAY */
-    #lockdown-overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #0b0d14;
-      z-index: 9999999;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      text-align: center;
+    #lockdown-overlay { 
+      display: none; 
+      position: fixed; 
+      inset: 0; 
+      background: #0b0d14; 
+      z-index: 9999999; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 24px; 
+      text-align: center; 
     }
-    .lockdown-card {
-      background: #161926;
-      border: 1px solid #2d3142;
-      border-radius: 14px;
-      max-width: 360px;
-      width: 100%;
-      padding: 28px 22px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    .lockdown-card { 
+      background: #161926; 
+      border: 1px solid #2d3142; 
+      border-radius: 14px; 
+      max-width: 360px; 
+      width: 100%; 
+      padding: 28px 22px; 
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6); 
     }
-    .lockdown-btn {
-      display: block;
-      width: 100%;
-      background: #4f46e5;
-      color: #fff;
-      text-decoration: none;
-      padding: 13px 0;
-      border-radius: 8px;
-      font-weight: 700;
-      font-size: 0.92rem;
-      border: none;
-      cursor: pointer;
-      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-      margin-top: 18px;
-      transition: background 0.15s;
+    .lockdown-btn { 
+      display: block; 
+      width: 100%; 
+      background: #4f46e5; 
+      color: #fff; 
+      text-decoration: none; 
+      padding: 13px 0; 
+      border-radius: 8px; 
+      font-weight: 700; 
+      font-size: 0.92rem; 
+      border: none; 
+      cursor: pointer; 
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4); 
+      margin-top: 18px; 
+      transition: background 0.15s; 
     }
     .lockdown-btn:active { background: #4338ca; }
   </style>
@@ -563,7 +530,7 @@
       <div id="zoom-wrapper">
         <div id="viewer">
           <div class="empty-state">
-            <h2>Reader v3.0 Ready</h2>
+            <h2>Reader Ready</h2>
             <p>Tap above to open any CSV, PDF, ODT, Word, Excel, Slides, ZIP, or Code file.</p>
             <div class="format-pills">
               <span class="pill">CSV / XLSX / ODS</span>
@@ -585,7 +552,6 @@
     <button class="hud-btn" id="btn-zoom-in">+</button>
   </div>
 
-  <!-- HARD LOCKOUT OVERLAY WITH LIVE PROGRESS STRIP & NATIVE INSTALLER -->
   <div id="lockdown-overlay">
     <div class="lockdown-card">
       <div style="font-size: 2.4rem; margin-bottom: 12px;">🚨</div>
@@ -594,7 +560,6 @@
         A critical update is required to open WhatsApp CSV, PDF, and university documents. Please update to continue.
       </p>
 
-      <!-- LIVE DOWNLOADING PROGRESS STRIP -->
       <div id="download-progress-container" style="display: none; margin-top: 18px; text-align: left;">
         <div style="display: flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600; color: #82aaff; margin-bottom: 6px;">
           <span id="download-status">Connecting to server...</span>
@@ -640,6 +605,7 @@
 
     let activeObjectUrls = [];
     let lastZipFile = null;
+    let pdfObserver = null;
 
     btnBackZip.addEventListener('click', () => {
       if (lastZipFile) {
@@ -651,6 +617,10 @@
     function cleanupMemory() {
       activeObjectUrls.forEach((url) => URL.revokeObjectURL(url));
       activeObjectUrls = [];
+      if (pdfObserver) {
+        pdfObserver.disconnect();
+        pdfObserver = null;
+      }
     }
 
     function updateTitle(name, badgeText = 'v3.0') {
@@ -674,9 +644,7 @@
       viewer.innerHTML = `<p style="color:#ef4444; text-align:center; margin-top:60px; padding:0 20px; font-size:0.9rem;">${msg}</p>`;
     }
 
-    // ---------------------------------------------------------
     // PINCH-TO-ZOOM & AUTO-FIT ENGINE
-    // ---------------------------------------------------------
     let scale = 1.0;
     let fitScale = 1.0;
     let initialDist = 0;
@@ -759,9 +727,7 @@
       }
     });
 
-    // ---------------------------------------------------------
     // 1. BULLETPROOF CSV / TSV PARSER
-    // ---------------------------------------------------------
     function parseDelimitedText(text, delimiter = ',') {
       const rows = [];
       let currentRow = [];
@@ -853,9 +819,7 @@
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
-    // 2. INLINE-SAFE PDF ENGINE
-    // ---------------------------------------------------------
+    // 2. INLINE LAZY-RENDER PDF ENGINE (HIGH FPS & LOW RAM)
     async function renderPdf(file) {
       viewer.innerHTML = '';
       if (!window.pdfjsLib) {
@@ -869,31 +833,59 @@
 
       updateTitle(file.name, `PDF (${pdf.numPages} Pages)`);
 
-      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-        const page = await pdf.getPage(pageNum);
-        const viewport = page.getViewport({ scale: 1.5 });
+      const deck = document.createElement('div');
+      deck.className = 'pdf-deck';
+      viewer.appendChild(deck);
 
+      // Virtualized observer: only renders canvas when page scrolls near the screen
+      pdfObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(async (entry) => {
+          if (!entry.isIntersecting) return;
+          const card = entry.target;
+          observer.unobserve(card);
+
+          if (card.dataset.rendered === 'true') return;
+          card.dataset.rendered = 'true';
+
+          const pageNum = parseInt(card.dataset.pageNum, 10);
+          const page = await pdf.getPage(pageNum);
+          
+          // Balanced scale for sharp text without out-of-memory crashes
+          const viewport = page.getViewport({ scale: 1.25 });
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = viewport.width;
+          canvas.height = viewport.height;
+
+          card.innerHTML = '';
+          card.appendChild(canvas);
+          await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        });
+      }, { root: container, rootMargin: '300px 0px' });
+
+      // First pass: obtain page 1 dimensions to build lightweight placeholders
+      const firstPage = await pdf.getPage(1);
+      const sampleViewport = firstPage.getViewport({ scale: 1.25 });
+      const aspect = sampleViewport.height / sampleViewport.width;
+
+      for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
         const card = document.createElement('div');
         card.className = 'pdf-page-card';
+        card.dataset.pageNum = pageNum;
+        card.style.width = '100%';
+        card.style.maxWidth = `${Math.min(sampleViewport.width, 820)}px`;
+        card.style.aspectRatio = `1 / ${aspect}`;
+        card.innerHTML = `<div style="color:#64748b; font-size:0.75rem;">Page ${pageNum}</div>`;
 
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
-
-        card.appendChild(canvas);
-        viewer.appendChild(card);
-
-        await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+        deck.appendChild(card);
+        pdfObserver.observe(card);
       }
 
       zoomHud.style.display = 'flex';
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
     // 3. EXCEL & ODS ENGINE
-    // ---------------------------------------------------------
     async function renderExcel(file) {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(data), { type: 'array' });
@@ -934,9 +926,7 @@
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
     // 4. ODT & ODP ENGINE
-    // ---------------------------------------------------------
     async function renderOdt(file, isPresentation = false) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
@@ -1021,9 +1011,7 @@
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
-    // 5. POLISHED VERTICAL-SCROLL PRESENTATION ENGINE (PPTX)
-    // ---------------------------------------------------------
+    // 5. PRESENTATION ENGINE (PPTX)
     async function renderPptx(file) {
       viewer.innerHTML = '';
       const zip = await JSZip.loadAsync(file);
@@ -1081,17 +1069,14 @@
 
       updateTitle(file.name, `${slidePaths.length} Slides`);
 
-      // Top-to-bottom vertical container
       const deckContainer = document.createElement('div');
       deckContainer.className = 'ppt-vertical-deck';
 
-      // Parse & build all slides vertically
       for (let i = 0; i < slidePaths.length; i++) {
         const path = slidePaths[i];
         const slideXmlStr = await zip.file(path).async('text');
         const xmlDoc = domParser.parseFromString(slideXmlStr, 'application/xml');
 
-        // Extract images relationship map
         const relsPath = path.replace('ppt/slides/slide', 'ppt/slides/_rels/slide') + '.rels';
         const imgMap = {};
         if (zip.file(relsPath)) {
@@ -1114,7 +1099,6 @@
         card.className = 'ppt-slide-card';
         card.style.animationDelay = `${Math.min(i * 0.04, 0.45)}s`;
 
-        // Modern Slide Number Pill
         const badge = document.createElement('div');
         badge.className = 'ppt-slide-badge';
         badge.textContent = `Slide ${i + 1} / ${slidePaths.length}`;
@@ -1124,7 +1108,6 @@
         stage.className = 'ppt-stage';
         stage.style.aspectRatio = `${sldW} / ${sldH}`;
 
-        // Slide Background
         const bgNode = xmlDoc.getElementsByTagName('p:bg')[0];
         if (bgNode) {
           const bgCol = parseColor(bgNode.getElementsByTagName('p:bgPr')[0]);
@@ -1134,7 +1117,6 @@
         const spTree = xmlDoc.getElementsByTagName('p:spTree')[0];
         if (spTree) {
           for (const node of spTree.children) {
-            // Text Shape
             if (node.tagName === 'p:sp') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -1156,7 +1138,6 @@
               shapeDiv.style.minHeight = `${(pos.cy / sldH) * 100}%`;
               shapeDiv.style.height = 'auto';
 
-              // Shape background fill & border
               let shapeFill = null;
               if (spPr) {
                 shapeFill = parseColor(spPr);
@@ -1172,16 +1153,11 @@
 
               const txBody = node.getElementsByTagName('p:txBody')[0];
               if (txBody) {
-                // Vertical alignment from bodyPr (anchor="ctr" | "b" | "t")
                 const bodyPr = txBody.getElementsByTagName('a:bodyPr')[0];
                 const anchor = bodyPr?.getAttribute('anchor');
-                if (anchor === 'ctr') {
-                  shapeDiv.style.justifyContent = 'center';
-                } else if (anchor === 'b') {
-                  shapeDiv.style.justifyContent = 'flex-end';
-                } else {
-                  shapeDiv.style.justifyContent = 'flex-start';
-                }
+                if (anchor === 'ctr') shapeDiv.style.justifyContent = 'center';
+                else if (anchor === 'b') shapeDiv.style.justifyContent = 'flex-end';
+                else shapeDiv.style.justifyContent = 'flex-start';
 
                 const paras = txBody.getElementsByTagName('a:p');
                 for (let pIdx = 0; pIdx < paras.length; pIdx++) {
@@ -1192,27 +1168,19 @@
                   const pDiv = document.createElement('div');
                   pDiv.className = 'ppt-p';
 
-                  // Horizontal alignment from pPr (algn="ctr" | "r" | "just")
                   const pPr = pNode.getElementsByTagName('a:pPr')[0];
                   const algn = pPr?.getAttribute('algn');
-                  if (algn === 'ctr') {
-                    pDiv.style.textAlign = 'center';
-                  } else if (algn === 'r') {
-                    pDiv.style.textAlign = 'right';
-                  } else if (algn === 'just') {
-                    pDiv.style.textAlign = 'justify';
-                  } else {
-                    pDiv.style.textAlign = 'left';
-                  }
+                  if (algn === 'ctr') pDiv.style.textAlign = 'center';
+                  else if (algn === 'r') pDiv.style.textAlign = 'right';
+                  else if (algn === 'just') pDiv.style.textAlign = 'justify';
+                  else pDiv.style.textAlign = 'left';
 
-                  // Title heuristic (first short paragraph on slide or title placeholder)
                   const ph = node.getElementsByTagName('p:nvSpPr')[0]?.getElementsByTagName('p:nvPr')[0]?.getElementsByTagName('p:ph')[0];
                   const phType = ph ? ph.getAttribute('type') : null;
                   if (phType === 'title' || phType === 'ctrTitle' || (pIdx === 0 && pText.length < 50 && i === 0)) {
                     pDiv.classList.add('is-title');
                   }
 
-                  // Bullet check
                   const hasBullet = pPr && (pPr.getElementsByTagName('a:buChar').length > 0 || pPr.getElementsByTagName('a:buAutoNum').length > 0);
                   if (hasBullet) {
                     pDiv.classList.add('is-bullet');
@@ -1222,11 +1190,9 @@
                     pDiv.appendChild(dot);
                   }
 
-                  // Default font size from pPr > defRPr if set
                   const defRPr = pPr?.getElementsByTagName('a:defRPr')[0];
                   const pDefSz = defRPr?.getAttribute('sz');
 
-                  // Text runs with formatting
                   const runs = pNode.getElementsByTagName('a:r');
                   if (runs.length > 0) {
                     for (const r of runs) {
@@ -1251,11 +1217,8 @@
                         if (rPr.getAttribute('i') === '1') span.style.fontStyle = 'italic';
                         if (rPr.getAttribute('u') === 'sng') span.style.textDecoration = 'underline';
                         const textColor = parseColor(rPr);
-                        if (textColor) {
-                          span.style.color = textColor;
-                        } else if (isDarkBg) {
-                          span.style.color = '#ffffff';
-                        }
+                        if (textColor) span.style.color = textColor;
+                        else if (isDarkBg) span.style.color = '#ffffff';
                       } else if (isDarkBg) {
                         span.style.color = '#ffffff';
                       }
@@ -1274,7 +1237,6 @@
               }
               stage.appendChild(shapeDiv);
 
-            // Picture Element
             } else if (node.tagName === 'p:pic') {
               const spPr = node.getElementsByTagName('p:spPr')[0];
               const xfrm = spPr?.getElementsByTagName('a:xfrm')[0];
@@ -1294,7 +1256,6 @@
                 stage.appendChild(img);
               }
 
-            // Table Frame Element
             } else if (node.tagName === 'p:graphicFrame') {
               const xfrm = node.getElementsByTagName('p:xfrm')[0];
               const off = xfrm?.getElementsByTagName('a:off')[0];
@@ -1338,9 +1299,7 @@
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
     // 6. ZIP ARCHIVE EXPLORER
-    // ---------------------------------------------------------
     async function renderZipArchive(file) {
       lastZipFile = file;
       btnBackZip.style.display = 'none';
@@ -1371,9 +1330,7 @@
       viewer.appendChild(box);
     }
 
-    // ---------------------------------------------------------
     // 7. CODE, MARKDOWN & TEXT RENDERER
-    // ---------------------------------------------------------
     async function renderTextOrCode(file, ext) {
       const text = await file.text();
 
@@ -1413,9 +1370,7 @@
       fitDocumentToScreen();
     }
 
-    // ---------------------------------------------------------
-    // 8. SMART BYTE-SNIFFING ROUTER
-    // ---------------------------------------------------------
+    // 8. BYTE-SNIFFING ROUTER
     async function renderFile(file, fromZip = false) {
       if (!file) return;
       if (!fromZip) btnBackZip.style.display = 'none';
@@ -1528,31 +1483,41 @@
       if (e.target.files[0]) renderFile(e.target.files[0]);
     });
 
-    // Native Android APK Bridge with Lockdown Protection
-    window.receiveFileFromAndroid = function(base64Data, fileName, mimeType) {
-      if (document.getElementById('lockdown-overlay').style.display === 'flex') {
-        return;
-      }
+    // Native Android Bridge (Non-blocking binary streaming)
+    window.receiveFileFromAndroid = async function(base64Data, fileName, mimeType) {
+      if (document.getElementById('lockdown-overlay').style.display === 'flex') return;
+      
+      const safeMime = mimeType || 'application/octet-stream';
+      const safeName = fileName || 'document';
+      showLoading(safeName);
+
       try {
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
+        let blob;
+        // Native browser streaming decode (zero UI blocking)
+        try {
+          const res = await fetch(`data:${safeMime};base64,${base64Data}`);
+          blob = await res.blob();
+        } catch (_) {
+          // Direct fallback
+          const binaryString = atob(base64Data);
+          const len = binaryString.length;
+          const bytes = new Uint8Array(len);
+          for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          blob = new Blob([bytes], { type: safeMime });
         }
-        const blob = new Blob([bytes], { type: mimeType || 'application/octet-stream' });
-        const file = new File([blob], fileName || 'document', { type: mimeType || 'application/octet-stream' });
+
+        const file = new File([blob], safeName, { type: safeMime });
         renderFile(file);
       } catch (err) {
         showError('Failed to load file from WhatsApp: ' + err.message);
       }
     };
 
-    // ---------------------------------------------------------
-    // 9. NATIVE GUI PROGRESS BAR + DIRECT ANDROID AUTO-INSTALLER
-    // ---------------------------------------------------------
+    // 9. NATIVE PROGRESS BAR + AUTO-INSTALLER
     let targetApkUrl = 'https://office-reader.vercel.app/Reader.apk';
 
-    // Callbacks triggered directly by MainActivity.java during native download
     window.onNativeDownloadProgress = function(pct, mbRead, mbTotal) {
       const progressBar = document.getElementById('download-progress-bar');
       const percentText = document.getElementById('download-percent');
@@ -1607,7 +1572,6 @@
           btn.onclick = () => runLiveDownload(targetApkUrl);
 
           installBtn.onclick = () => {
-            // Check native bridge availability
             if (window.AndroidUpdater && typeof window.AndroidUpdater.installNow === 'function') {
               try {
                 window.AndroidUpdater.installNow();
@@ -1615,7 +1579,6 @@
                 window.location.href = targetApkUrl;
               }
             } else {
-              // Direct fallback so v1 users can tap and install directly
               window.location.href = targetApkUrl;
             }
           };
@@ -1637,14 +1600,12 @@
       btn.style.display = 'none';
       progressBox.style.display = 'block';
 
-      // PATH A: Native Java Downloader & Auto-Installer (Used in Version 2.0+)
       if (window.AndroidUpdater && typeof window.AndroidUpdater.startUpdate === 'function') {
         statusText.textContent = 'Starting native download...';
         window.AndroidUpdater.startUpdate(url);
         return;
       }
 
-      // PATH B: Fallback simulation for old v1.0 builds
       try {
         statusText.textContent = 'Connecting to server...';
         const fetchUrl = '/Reader.apk?t=' + Date.now();
